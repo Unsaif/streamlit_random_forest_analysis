@@ -56,6 +56,7 @@ reduction_method = st.sidebar.selectbox("Reduction Method", ("accuracy", "accura
 bound = st.sidebar.slider("Bound (10^-4)", min_value=1, max_value=10, value=5, step=1)
 umap_op = st.sidebar.selectbox("UMAP", ("true", "false"))
 n = st.sidebar.slider("n_neighbours (UMAP)", min_value=0, max_value=1000, value=250)
+split = st.sidebar.selectbox("Train-Test split", ("random", "stratify", "index"))
 
 file = st.file_uploader("", type=['csv'])
 
@@ -71,7 +72,15 @@ else:
     if not dep_var:
         st.write("**Enter dependent variable to move on**")
     else:
-        kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, idx="random")
-        st.write(f"Final features are: {kept_features}")
+        if split == "index":
+            idx = st.text_input("Please put in list of index values")
+            index_col = st.text_input("Please indicate the index column if there is one, if not leave blank")
+            if index_col == "":
+                index_col = None
+            kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=idx, index_col=index_col)
+            st.write(f"Final features are: {kept_features}")
+        else:
+            kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
+            st.write(f"Final features are: {kept_features}")
 
 

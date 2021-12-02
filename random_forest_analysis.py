@@ -20,7 +20,7 @@ import umap.umap_ as umap
 
 import plotly.express as px
 
-def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op="true", n=250, idx=None):
+def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op="true", n=250, split="stratify", index_col=None):
     
     """
     Random Forest Data Exploration
@@ -160,7 +160,6 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             #confusion matrices 
             col1, col2, = st.columns(2)
             with col1:
-                #st.header("Confusion matrix, without normalization")
                 ConfusionMatrixDisplay.from_predictions(valid_y, preds, 
                                                         display_labels=classnames, 
                                                         normalize=None, 
@@ -170,7 +169,6 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                 plt.title("Confusion matrix, without normalization")
                 st.pyplot(fig=plt)
             with col2:
-                #st.header("Normalized confusion matrix")
                 ConfusionMatrixDisplay.from_predictions(valid_y, preds, 
                                                         display_labels=classnames, 
                                                         normalize='true', 
@@ -182,12 +180,16 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             
             elapsed_time = time.perf_counter() - t
         st.success('Confusion matrices generated! Time elapsed: {}'.format(output_time(elapsed_time)))
+
     ##### Script Start #####
 
     font_size_title=16
 
     with st.spinner("Reading uploaded file..."):
-        df = pd.read_csv(file)
+        if index_col != None:
+            df = pd.read_csv(file, index_col=index_col)
+        else:
+            df = pd.read_csv(file)
     st.success("File read!")
 
     st.write(f"Shape of dataset: {df.shape}")
@@ -207,12 +209,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         #fastai's processing into training and validation groups
         cont_list, cat_list = cont_cat_split(df, max_card=20, dep_var=dep_var)
 
-        if idx == None:
+        if split == "stratify":
             splits = TrainTestSplitter(test_size=0.2, stratify=df[dep_var])(range_of(df)) ##maybe make other splitters an option
-        elif idx == "random":
+        elif split == "random":
             splits = RandomSplitter()(range_of(df))
         else:
-            splits = IndexSplitter(idx)(range_of(df))
+            splits = IndexSplitter(split)(range_of(df))
             
         to = TabularPandas(df, procs=[FillMissing, Normalize, Categorify],
                         cat_names = cat_list,
