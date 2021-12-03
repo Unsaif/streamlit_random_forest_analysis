@@ -1,5 +1,12 @@
 import streamlit as st
+import pandas as pd
 from random_forest_analysis import random_forest_analysis
+
+st.set_page_config(
+    page_title="Random Forest Analysis",
+    page_icon="🧊",
+    layout="wide",
+    initial_sidebar_state="expanded")
 
 ##streamlit start##
 
@@ -57,7 +64,7 @@ with st.expander("Sidebar documentation"):
         - *stratified*: makes sure the 80:20 divide contains similar levels of each class across the divide. 
         - *index*: pass in a predefined index to test on a specific group.  
     """)
-    
+
 reduction_method = st.sidebar.selectbox("Reduction Method", ("accuracy", "accuracy, precision and recall"))
 bound = st.sidebar.slider("Bound (10^-4)", min_value=1, max_value=10, value=5, step=1)
 umap_op = st.sidebar.selectbox("UMAP", ("true", "false"))
@@ -87,6 +94,9 @@ else:
             st.write(f"Final features are: {kept_features}")
         else:
             kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
-            st.write(f"Final features are: {kept_features}")
+            features_df = pd.DataFrame(columns=["Features"])
+            features_df["Features"] = kept_features
+            st.header("Final features:")
+            st.table(features_df)
 
 
