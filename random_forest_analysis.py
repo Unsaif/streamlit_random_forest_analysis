@@ -7,11 +7,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from scipy.cluster import hierarchy as hc
 from scipy.cluster.hierarchy import fcluster
-
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 import seaborn as sns
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA

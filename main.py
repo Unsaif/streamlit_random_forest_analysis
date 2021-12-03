@@ -50,8 +50,14 @@ with st.expander("Sidebar documentation"):
 
     - *n_neighbours (UMAP)*: This setting is for *UMAP* and it is described that the greater the *n_neighbours* value the more is revealed about the
     global structure of the data, whereas, a small *n_neighbours* value reveals more the local structure.
-    Default is **250** which is high enough in most cases to be considered to reveal the global structure.  
+    Default is **250** which is high enough in most cases to be considered to reveal the global structure. 
+
+    - *Train-Test split*: This setting indicates how you would like the data to be divided into training and validation groups:
+        - *random*: randomly split the data into an 80:20 divide. 
+        - *stratified*: makes sure the 80:20 divide contains similar levels of each class across the divide. 
+        - *index*: pass in a predefined index to test on a specific group.  
     """)
+    
 reduction_method = st.sidebar.selectbox("Reduction Method", ("accuracy", "accuracy, precision and recall"))
 bound = st.sidebar.slider("Bound (10^-4)", min_value=1, max_value=10, value=5, step=1)
 umap_op = st.sidebar.selectbox("UMAP", ("true", "false"))
