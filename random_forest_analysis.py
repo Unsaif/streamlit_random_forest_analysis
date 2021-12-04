@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from dtreeviz.trees import *
 import streamlit.components.v1 as components
+import graphviz as graphviz
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 import matplotlib.pyplot as plt
