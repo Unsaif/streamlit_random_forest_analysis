@@ -93,12 +93,15 @@ else:
             if index_col == "":
                 index_col = None
             kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=idx, index_col=index_col)
-            st.write(f"Final features are: {kept_features}")
+            features_df = pd.DataFrame(columns=["Features"])
+            features_df["Features"] = kept_features
+            st.header("Final features")
+            st.table(features_df)
         else:
             kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
             features_df = pd.DataFrame(columns=["Features"])
             features_df["Features"] = kept_features
-            st.header("Final features:")
+            st.header("Final features")
             st.table(features_df)
 
 
