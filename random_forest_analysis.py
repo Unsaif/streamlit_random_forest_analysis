@@ -5,8 +5,8 @@ import pandas as pd
 from fastai.tabular.all import *
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-# from dtreeviz.trees import *
-# import streamlit.components.v1 as components
+from dtreeviz.trees import *
+import streamlit.components.v1 as components
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 import matplotlib.pyplot as plt
@@ -204,11 +204,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                     """)
         st.success('Confusion matrices generated! Time elapsed: {}'.format(output_time(elapsed_time)))
 
-    # def st_dtree(viz, height=None, width=None):
+    def st_dtree(viz, height=None, width=None):
 
-    #     dtree_html = f"<body>{viz.svg()}</body>"
+        dtree_html = f"<body>{viz.svg()}</body>"
 
-    #     components.html(dtree_html, height=height, width=width)
+        components.html(dtree_html, height=height, width=width)
 
     ##### Script Start #####
 
@@ -273,16 +273,15 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         else:
             samp_idx = np.random.permutation(len(y))[:len(xs)]
 
-        # viz = dtreeviz(dtm, xs.iloc[samp_idx], y.iloc[samp_idx], xs.columns, dep_var,
-        # fontname='DejaVu Sans', scale=1.6, label_fontsize=10, class_names=classnames, title="Decision Tree")
+        viz = dtreeviz(dtm, xs.iloc[samp_idx], y.iloc[samp_idx], xs.columns, dep_var,
+        fontname='DejaVu Sans', scale=1.6, label_fontsize=10, class_names=classnames, title="Decision Tree")
         
         #training initial model on all features
         m = rf(xs, y, len(to.train))
         
         elapsed_time = time.perf_counter() - t
 
-    #st.image(viz._repr_svg_(), use_column_width=True)
-    #st_dtree(viz, 700, 600)
+    st_dtree(viz, 700, 600) 
     with st.expander("See notes"):
         st.write("""
         This is a representation of a singular decision tree in the random forest used for this classification problem.
