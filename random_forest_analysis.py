@@ -4,6 +4,9 @@ import datetime
 import pandas as pd
 from fastai.tabular.all import *
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+# from dtreeviz.trees import *
+# import streamlit.components.v1 as components
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 import matplotlib.pyplot as plt
@@ -18,7 +21,7 @@ import umap.umap_ as umap
 
 import plotly.express as px
 
-def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op="true", n=250, split="stratify", index_col=None):
+def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     
     """
     Random Forest Data Exploration
@@ -122,7 +125,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                 else:
                     pass
 
-        plt.title("Similarity Dendrogram", fontsize=font_size_title)    
+        plt.title("Similarity Dendrogram", fontsize=font_size_title-4)    
         st.pyplot(fig)
 
         return to_drop
@@ -152,7 +155,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             hours = int(minutes // 60)
             return str(hours) + " hours " + str(minutes - hours * 60) + " minutes " + str(round(time_in_seconds - minutes * 60)) + " seconds"
     
-    def confusion_matrices_generation():
+    def confusion_matrices_generation(which, dif1=0, dif2=0, dif3=0):
         with st.spinner("Generating confusion matrices..."):   
 
             #confusion matrices 
@@ -177,7 +180,35 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                 st.pyplot(fig=plt)
             
             elapsed_time = time.perf_counter() - t
+        if which == "initial":
+            with st.expander("See notes"):
+                st.write(f"""
+                Confusion matrices are a summary of prediction results on a classification problem. These matrices list the "predicted label" on the bottom and
+                "true label" on the left. The accuracy, precision and recall results are all derived from the confusion matrix.
+
+                *TP*, *TN*, *FP*, *FN* - True Positive, True Negative, False Positive, False Negative
+
+                *Accuracy* - TP+TN/TP+FP+FN+TN
+
+                *Precision* - TP/TP+FP
+
+                *Recall* - TP/TP+FN
+                """)
+        else:
+            with st.expander("See notes"):
+                st.write(f"""
+                    When compared to initial model's corresponding metric:
+                    - Accuracy {"did not change" if dif1 == 0 else (f"decreased by {-1*dif1}%" if dif1 < 0 else f"increased by {dif1}%")}
+                    - Precision {"did not change" if dif2 == 0 else (f"decreased by {-1*dif2}%" if dif2 < 0 else f"increased by {dif2}%")}
+                    - Recall {"did not change" if dif3 == 0 else (f"decreased by {-1*dif3}%" if dif3 < 0 else f"increased by {dif3}%")}
+                    """)
         st.success('Confusion matrices generated! Time elapsed: {}'.format(output_time(elapsed_time)))
+
+    # def st_dtree(viz, height=None, width=None):
+
+    #     dtree_html = f"<body>{viz.svg()}</body>"
+
+    #     components.html(dtree_html, height=height, width=width)
 
     ##### Script Start #####
 
@@ -190,19 +221,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             df = pd.read_csv(file)
     st.success("File read!")
 
-    #st.write(f"Shape of dataset: {df.shape}")
-
     classnames = list(df[dep_var].unique())
     classnames.sort()
-        
-    #st.write(f"Number of classes: {len(classnames)}")
     
     now = datetime.now().strftime("%H:%M:%S")
-    
-    #st.write(f"Start time: {now}")
 
     st.metric("Shape of dataset", f"{df.shape[0]} rows, {df.shape[1] - 1} features")
-    #col1, col2 = st.columns(2)
     st.metric("Number of classes", len(classnames))
     st.metric("Start time", now)
     
@@ -228,31 +252,58 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         elapsed_time = time.perf_counter() - t
 
     st.success('Train-test split done! Time elapsed: {}'.format(output_time(elapsed_time)))
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Training set size", len(to.train.xs))
+    with col2:
+        st.metric("Validation set size", len(to.valid.xs))
+
     with st.spinner("Training model..."):
     
         xs,y = to.train.xs,to.train.y
         valid_xs,valid_y = to.valid.xs,to.valid.y
+
+        #Decision Tree example
+        dtm = DecisionTreeClassifier(max_leaf_nodes=4)
+        dtm.fit(xs, y)
+
+        if len(xs) > 500:
+            samp_idx = np.random.permutation(len(y))[:500]
+        else:
+            samp_idx = np.random.permutation(len(y))[:len(xs)]
+
+        # viz = dtreeviz(dtm, xs.iloc[samp_idx], y.iloc[samp_idx], xs.columns, dep_var,
+        # fontname='DejaVu Sans', scale=1.6, label_fontsize=10, class_names=classnames, title="Decision Tree")
         
         #training initial model on all features
         m = rf(xs, y, len(to.train))
         
         elapsed_time = time.perf_counter() - t
+
+    #st.image(viz._repr_svg_(), use_column_width=True)
+    #st_dtree(viz, 700, 600)
+    with st.expander("See notes"):
+        st.write("""
+        This is a representation of a singular decision tree in the random forest used for this classification problem.
+        The random forest is comprised of many decision trees. The model's decision classification is the majority vote of all the decision trees.
+        """)
+    #st.image(image, use_column_width=True)
     st.success('Initial Model training done! Time elapsed: {}'.format(output_time(elapsed_time)))
         
     preds = m.predict(valid_xs)
 
-    st.write(f"##### Model Metrics with all {len(xs.columns)} features:")
+    st.write(f"##### Model Metrics with all {len(xs.columns)} features")
     precision_initial = round(precision_score(valid_y, preds, average='macro')*100, 2)
     recall_initial = round(recall_score(valid_y, preds, average='macro')*100, 2)
     accuracy_initial = round(accuracy_score(valid_y, preds)*100, 2)
-    #st.write(pd.DataFrame({'Score': [precision, recall, accuracy]}, index=["Precision", "Recall", "Accuracy"]))
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Accuracy", str(accuracy_initial) + "%")
     col2.metric("Precision", str(precision_initial) + "%")
     col3.metric("Recall", str(recall_initial) + "%")
 
-    confusion_matrices_generation()
+    confusion_matrices_generation("initial")
     with st.spinner("Generating model with important features..."):
         #feature importance all features
         fi = rf_feat_importance(m, xs)
@@ -270,6 +321,15 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             yaxis_title="Features",
         )
         st.plotly_chart(fig)
+
+        with st.expander("See notes"):
+            st.write(f"""
+            feature importance is calculated by the decrease in node impurity (a measure of how well the node splits the data), 
+            weighted by the probability of reaching that node. 
+            The most important features have the highest values, although a feature being on top in this diagram does not necessarily mean its *the* most important feature. 
+            It is dependent on how the current model has arranged its trees. Redoing the analysis, you will see a different list. However, truly important features will 
+            will continuously enter the top feature list, but most likely in different positions each time.
+            """)
         
         m_imp, xs_imp, valid_xs_imp, to_keep = data_reduction(m, xs, y, valid_xs, valid_y, fi, reduction_method, bound)
         
@@ -285,13 +345,16 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     accuracy_important = round(accuracy_score(valid_y, preds)*100, 2)
     #st.write(pd.DataFrame({'Score': [precision, recall, accuracy]}, index=["Precision", "Recall", "Accuracy"]))
     st.metric("Number of important features kept", f"{len(xs_imp.columns)}", f"{(len(xs_imp.columns)-len(xs.columns))} reduction in features", delta_color="off")
-    st.write(f"##### Model Metrics with the most important {len(xs_imp.columns)} features:")
+    st.write(f"##### Model Metrics with the most important {len(xs_imp.columns)} features")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", str(accuracy_important) + "%", str(round(accuracy_important-accuracy_initial, 2)) + "%")
-    col2.metric("Precision", str(precision_important) + "%", str(round(precision_important-precision_initial, 2)) + "%")
-    col3.metric("Recall", str(recall_important) + "%", str(round(recall_important-recall_initial, 2)) + "%")
+    dif1 = round(accuracy_important-accuracy_initial, 2)
+    dif2 = round(precision_important-precision_initial, 2)
+    dif3 = round(recall_important-recall_initial, 2)
+    col1.metric("Accuracy", str(accuracy_important) + "%", str(dif1) + "%")
+    col2.metric("Precision", str(precision_important) + "%", str(dif2) + "%")
+    col3.metric("Recall", str(recall_important) + "%", str(dif3) + "%")
 
-    confusion_matrices_generation()
+    confusion_matrices_generation("non-initial", dif1, dif2, dif3)
     with st.spinner("Checking for redundant features..."):
 
         #feature importance important features
@@ -302,6 +365,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         to_drop = cluster_columns(xs_imp, figwidth)
         
         elapsed_time = time.perf_counter() - t
+    with st.expander("See notes"):
+        st.write(f"""
+        Similar features are clustered together, merged early and far from the root; of these clusters all but one are kept, the rest dropped. 
+        In this case features {', '.join(to_drop)} were chosen to be dropped. 
+        """)
     st.success('Redundancy check done! Time elapsed: {}'.format(output_time(elapsed_time)))
     with st.spinner("Training final model..."):
         
@@ -328,45 +396,81 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     accuracy_final = round(accuracy_score(valid_y, preds)*100, 2)
     #st.write(pd.DataFrame({'Score': [precision, recall, accuracy]}, index=["Precision", "Recall", "Accuracy"]))
 
-    st.metric("Final number of features", f"{len(xs_final.columns)}", f"{(len(xs_final.columns)-len(xs_imp.columns))} redundant features dropped", delta_color="off")
-    st.write(f"##### Model Metrics with the final {len(xs_final.columns)} features:")
+    st.metric("Final number of features", f"{len(xs_final.columns)}", f"{-1*((len(xs_final.columns)-len(xs_imp.columns)))} redundant features dropped", delta_color="off")
+    st.write(f"##### Model Metrics with the final {len(xs_final.columns)} features")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", str(accuracy_final) + "%", str(round(accuracy_final-accuracy_initial, 2)) + "%")
-    col2.metric("Precision", str(precision_final) + "%", str(round(precision_final-precision_initial, 2)) + "%")
-    col3.metric("Recall", str(recall_final) + "%", str(round(recall_final-recall_initial, 2)) + "%")
+    dif1 = round(accuracy_final-accuracy_initial, 2)
+    dif2 = round(precision_final-precision_initial, 2)
+    dif3 = round(recall_final-recall_initial, 2)
+    col1.metric("Accuracy", str(accuracy_final) + "%", str(dif1) + "%")
+    col2.metric("Precision", str(precision_final) + "%", str(dif2) + "%")
+    col3.metric("Recall", str(recall_final) + "%", str(dif3) + "%")
 
-    confusion_matrices_generation()
+    confusion_matrices_generation("non-initial", dif1, dif2, dif3)
     #feature importance final features
     fi = rf_feat_importance(m_final, xs_final)
     
     with st.spinner("Generating heatmap and histograms of top features..."):
         
-        #col1, col2 = st.columns((1, 2))
+        df_train = xs_final.join(y, how="left")
         #heatmap
-        c_mat = xs_final.corr()
-        c_mat_df = pd.DataFrame(c_mat, index=xs_final.columns, columns=xs_final.columns)
-        fig = px.imshow(c_mat_df, title="Final Features Heatmap")
-        fig.update_layout(width=800, height=800)
-        fig.update_xaxes(
-        tickangle = 90)
-        #with col1:
-        st.plotly_chart(fig)
-    
-        #histogram  
+        col1, col2 = st.columns(2)
+        for class_, i in zip(classnames, iter(range(len(classnames)))):
+            df_train_class_select = df_train[df_train[dep_var] == classnames.index(class_)]
+
+            c_mat = df_train_class_select.drop(columns=[dep_var]).corr()
+            c_mat_df = pd.DataFrame(c_mat, index=xs_final.columns, columns=xs_final.columns).fillna(0)
+            fig = px.imshow(c_mat_df, title=f"Final Features Heatmap ({class_})", zmin=-1, zmax=1)
+            fig.update_layout(width=400, height=400)
+            fig.update_xaxes(
+            tickangle = 90)
+
+            if i % 2 > 0:
+                with col2:
+                    st.plotly_chart(fig)
+            else:
+                with col1:
+                    st.plotly_chart(fig)
+
+        with st.expander("See notes"):
+            st.write(f"""
+            Heatmaps give insight into the relationship between features. Bright yellow indicating that a feature's measurable property is closely 
+            correlated with the corresponding feature, thus why the downward diagonal is always bright yellow if the feature is present for a specific class.
+
+            Dark Blue indicates that the opposite is true - that there exists a negative correlation between two corresponding features.
+            """)
+
+        #histogram 
         figwidth = figsizecalc(len(xs_final.columns))
-        xs_final.hist(figsize = (figwidth, figwidth))
-        
-        plt.suptitle("Histogram for each Final Feature", y=1.02, fontsize=font_size_title)
-        plt.tight_layout()
-        #with col2:
-        st.pyplot(fig=plt)
+        col1, col2 = st.columns(2)
+        for class_, i in zip(classnames, iter(range(len(classnames)))):
+            df_train_class_select = df_train[df_train[dep_var] == classnames.index(class_)]
+
+            df_train_class_select.drop(columns=[dep_var]).hist(figsize = (figwidth, figwidth))
+
+            plt.suptitle(f"Histogram for each Final Feature ({class_})", y=1.02, fontsize=font_size_title)
+            plt.tight_layout()
+
+            if i % 2:
+                with col2:
+                    st.pyplot(fig=plt)
+            else:
+                with col1:
+                    st.pyplot(fig=plt)
+
+        with st.expander("See notes"):
+            st.write(f"""
+            Histograms of the distributions for each of the final features can be quite insightful into the models decision making process. 
+            If there is clear separability in the data, one would expect there to also be clear visual differences in the histogram plots. If you see that
+            the x-axis of the histograms does not correspond with the values in the uploaded file, that is becuase your data may have been normailized or that
+            categorical variables have been encoded. 
+            """)
         
         elapsed_time = time.perf_counter() - t
     st.success('Heatmap and histogram done! Time elapsed: {}'.format(output_time(elapsed_time)))
     with st.spinner("Generating LDA plots..."):
     
         #reconstructing initial dataframe (needed as dataframe has been processed with fastai)
-        df_train = xs_final.join(y, how="left")
         df_valid = valid_xs_final.join(valid_y, how="left")
 
         frames = [df_train, df_valid]
@@ -400,10 +504,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         sc.legend_.set_title(None)
 
-        col1, col2, = st.columns(2)
-        with col1:
-            plt.title("LDA 2D", fontsize=font_size_title)
-            st.pyplot(fig=plt)
+        #col1, col2, = st.columns(2)
+        #with col1:
+        plt.title("LDA 2D", fontsize=font_size_title)
+        #plt.figure(dpi=300)
+        st.pyplot(fig=plt, dpi=600)
 
         #lda 3d
         cmap = ListedColormap(sns.color_palette("hls", len(classnames)).as_hex())
@@ -434,31 +539,44 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         leg = ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1), prop={"size":10}) #, bbox_to_anchor=(1.0125, 1), loc=2
         
-        with col2:
+        #with col2:
+        plt.tight_layout()
+        plt.title("LDA 3D", fontsize=font_size_title)
+        #plt.figure(dpi=300)
+        st.pyplot(fig=plt, dpi=600)
 
-            plt.tight_layout()
-            plt.title("LDA 3D", fontsize=font_size_title)
-            st.pyplot(fig=plt)
+        with st.expander("See notes"):
+            st.write(f"""
+            Linear Discriminant Analysis (LDA) can take the high dimensional space of our final {len(xs_final.columns)} feature dataset and 
+            reduce the dimensionality to 3 dimensions. LDA places emphasis on minimising variance for groups and maximising distance between groups 
+            resulting in the visualisations shown. The visualisations effectively shows us that the datapoints can be easily grouped if there is clear separability
+            but also reveals the datapoints the model may have struggled with. 
+            """)
         
-        col1, col2, = st.columns(2)
-        with col1:
-            fig = px.scatter(LDA_df, x="l1", y="l2", color=dep_var+" label", title="Interactive LDA 2D")
-            fig.update_traces(marker=dict(line=dict(width=0.8,
-                                        color='White')),
-                    selector=dict(mode='markers'))
-            st.plotly_chart(fig)
-        with col2:
-            fig = px.scatter_3d(LDA_df_3d, x="l1", y="l2", z="l3", color=dep_var+" label", title="Interactive LDA 3D")
-            fig.update_traces(marker=dict(line=dict(width=0.8,
-                                        color='White')),
-                    selector=dict(mode='markers'))
-            st.plotly_chart(fig)
+        #col1, col2, = st.columns(2)
+        #with col1:
+        fig = px.scatter(LDA_df, x="l1", y="l2", color=dep_var+" label", title="Interactive LDA 2D")
+        fig.update_traces(marker=dict(line=dict(width=0.8,
+                                    color='White')),
+                selector=dict(mode='markers'))
+        st.plotly_chart(fig)
+        #with col2:
+        fig = px.scatter_3d(LDA_df_3d, x="l1", y="l2", z="l3", color=dep_var+" label", title="Interactive LDA 3D")
+        fig.update_traces(marker=dict(line=dict(width=0.8,
+                                    color='White')),
+                selector=dict(mode='markers'))
+        st.plotly_chart(fig)
+
+        with st.expander("See notes"):
+            st.write(f"""
+            Enlarge the interacitve plots for a better experience!
+            """)
         
         elapsed_time = time.perf_counter() - t
     st.success('LDA done! Time elapsed: {}'.format(output_time(elapsed_time)))
     
     #umap
-    if umap_op == "true":
+    if umap_op:
         with st.spinner("Generating UMAP plots..."):
         
             #umap 2d
@@ -466,7 +584,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             umap_df_2d = pd.DataFrame({"u1": umap_result_2d[:,0], "u2": umap_result_2d[:,1], dep_var: target_col})
             umap_df_2d = umap_df_2d.join(label_col, rsuffix=" label")
             
-            plt.figure(figsize=(30,30))
+            plt.figure(figsize=(15,15))
             sc = sns.scatterplot(
                 x="u1", y="u2",
                 hue=dep_var + " label",
@@ -478,18 +596,19 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             )
 
             sc.legend_.set_title(None)
-            col1, col2, = st.columns(2)
-            with col1:
-                plt.title("UMAP 2D: n_neighbours={}".format(n), fontsize=font_size_title+10)
-                plt.legend(prop={"size":20})
-                st.pyplot(fig=plt)
+            #col1, col2, = st.columns(2)
+            #with col1:
+            plt.title("UMAP 2D: n_neighbours={}".format(n), fontsize=font_size_title+10)
+            plt.legend(prop={"size":20})
+            #plt.figure(dpi=300)
+            st.pyplot(fig=plt, dpi=600)
 
             #umap 3d
             umap_result = draw_umap(n, 0.1, 3, df_final)
             umap_df = pd.DataFrame({"u1": umap_result[:,0], "u2": umap_result[:,1], "u3": umap_result[:,2], dep_var: target_col})
             umap_df = umap_df.join(label_col, rsuffix=" label")
             
-            ax = plt.figure(figsize=(10,10)).gca(projection='3d')
+            ax = plt.figure(figsize=(15,15)).gca(projection='3d')
             sc = ax.scatter(
                 xs=umap_df["u1"], 
                 ys=umap_df["u2"], 
@@ -513,27 +632,39 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                     pass
 
             ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1)) #, bbox_to_anchor=(1.0125, 1), loc=2
-            with col2:
-                plt.tight_layout()
-                plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
-                st.pyplot(fig=plt)
+            #with col2:
+            plt.tight_layout()
+            plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
+            #plt.figure(dpi=300)
+            st.pyplot(fig=plt, dpi=600)
 
-            col1, col2, = st.columns(2)
-            with col1:
-                fig = px.scatter(umap_df_2d, x="u1", y="u2", color=dep_var+" label", title="Interactive UMAP 2D")
-                fig.update_traces(marker=dict(line=dict(width=0.8,
-                                            color='White')),
-                    selector=dict(mode='markers'))
-                st.plotly_chart(fig)
-            with col2:
-                fig = px.scatter_3d(umap_df, x="u1", y="u2", z="u3", color=dep_var+" label", title="Interactive UMAP 3D")
-                fig.update_traces(marker=dict(line=dict(width=0.8,
-                                            color='White')),
-                    selector=dict(mode='markers'))
-                st.plotly_chart(fig)
+            with st.expander("See notes"):
+                st.write(f"""
+                UMAP’s capability is to group unlabelled data based on similarity, done on the reduced dataset these are the resulting visualisations. 
+                If the dataset is inherently divisible based on the final features, you should be able to see clear separation in the visualisations. 
+                """)
+
+            #col1, col2, = st.columns(2)
+            #with col1:
+            fig = px.scatter(umap_df_2d, x="u1", y="u2", color=dep_var+" label", title="Interactive UMAP 2D")
+            fig.update_traces(marker=dict(line=dict(width=0.8,
+                                        color='White')),
+                selector=dict(mode='markers'))
+            st.plotly_chart(fig)
+            #with col2:
+            fig = px.scatter_3d(umap_df, x="u1", y="u2", z="u3", color=dep_var+" label", title="Interactive UMAP 3D")
+            fig.update_traces(marker=dict(line=dict(width=0.8,
+                                        color='White')),
+                selector=dict(mode='markers'))
+            st.plotly_chart(fig)
+
+            with st.expander("See notes"):
+                st.write(f"""
+                Enlarge the interacitve plots for a better experience!
+                """)
 
             elapsed_time = time.perf_counter() - t
-        st.success('UMAP done! Time elapsed:: {}'.format(output_time(elapsed_time)))
+        st.success('UMAP done! Time elapsed: {}'.format(output_time(elapsed_time)))
     else:
         pass
     

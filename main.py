@@ -5,7 +5,7 @@ from random_forest_analysis import random_forest_analysis
 st.set_page_config(
     page_title="Random Forest Analysis",
     page_icon="🧊",
-    layout="wide",
+    #layout="wide",
     initial_sidebar_state="expanded")
 
 ##streamlit start##
@@ -65,11 +65,13 @@ with st.expander("Sidebar documentation"):
         - *index*: pass in a predefined index to test on a specific group.  
     """)
 
+st.sidebar.header("Set Parameters")
 reduction_method = st.sidebar.selectbox("Reduction Method", ("accuracy", "accuracy, precision and recall"))
 bound = st.sidebar.slider("Bound (10^-4)", min_value=1, max_value=10, value=5, step=1)
-umap_op = st.sidebar.selectbox("UMAP", ("true", "false"))
-n = st.sidebar.slider("n_neighbours (UMAP)", min_value=0, max_value=1000, value=250)
-split = st.sidebar.selectbox("Train-Test split", ("random", "stratify", "index"))
+umap_op = st.sidebar.checkbox("UMAP", True)
+if umap_op:
+    n = st.sidebar.slider("n_neighbours (UMAP)", min_value=0, max_value=1000, value=250)
+split = st.sidebar.selectbox("Train-Test split", ("stratify", "random", "index"))
 
 file = st.file_uploader("", type=['csv'])
 
