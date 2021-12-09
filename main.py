@@ -1,6 +1,12 @@
 import streamlit as st
 import pandas as pd
 from random_forest_analysis import random_forest_analysis
+from fpdf import FPDF
+import base64
+
+def create_download_link(val, filename):
+    b64 = base64.b64encode(val)  # val looks like b'...'
+    return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download pdf report</a>'
 
 st.set_page_config(
     page_title="Random Forest Analysis",
@@ -81,7 +87,6 @@ else:
     # if len(file) > 1:
     #     st.warning(f"Maximum number of files reached. Only the first will be processed.")
     #     file = file[0]
-
     dep_var = st.text_input("Input dependent variable")
 
     if not dep_var:
@@ -98,10 +103,14 @@ else:
             st.header("Final features")
             st.table(features_df)
         else:
-            kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
+            kept_features, pdf = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
             features_df = pd.DataFrame(columns=["Features"])
             features_df["Features"] = kept_features
             st.header("Final features")
             st.table(features_df)
+
+            html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
+
+            st.markdown(html, unsafe_allow_html=True)
 
 

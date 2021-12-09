@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import datetime
-import pandas as pd
+import pandas as pd 
 from fastai.tabular.all import *
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -21,11 +21,20 @@ import umap.umap_ as umap
 
 import plotly.express as px
 
+import warnings
+warnings.filterwarnings('ignore')
+
+from PIL import Image 
+
+Image.MAX_IMAGE_PIXELS = 1000000000
+
+from fpdf import FPDF
+
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     
-    """
-    Random Forest Data Exploration
-    returns the deemed most important features where redundant features have been removed
+    """Random Forest Data Exploration
+    in: uploaded file, classificaiton column name
+    out: the deemed most important features where redundant features have been removed and pdf summary report
     """
     
     #Random Forest Classifier
@@ -41,6 +50,10 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     
     #Finding Minimum Required Features Loop for Data Reduction Function
     def data_reduction_loop(imp_offset, fi, xs, y, valid_xs):
+        """Finding Minimum Required Features Loop for Data Reduction Function
+        in: value used to adjust important feature search (float), feature importance dataframetraining dataframe, training classification column, validation dataframe
+        out: new offset value (float), reduced training set, validation training set, rf important model, predictions for validation set, features to keep (list)
+        """
 
         imp_offset += 0.0001
         to_keep = fi[fi.imp > (0.005 - imp_offset)].features
@@ -52,9 +65,13 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         preds = m_imp.predict(valid_xs_imp)
         
         return imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep
-    
-    #Fuction that Returns Most Important Features that Keeps Required Accuracy and if Chosen Recall and Precision, also  
+      
     def data_reduction(m, xs, y, valid_xs, valid_y, fi, reduction_method, bound):
+        """Fuction that Returns Most Important Features that Keeps Required Accuracy and if Chosen Recall and Precision, also
+        in: rf model, training dataframe, training classification column, validation dataframe, validation classification column, feature importance dataframe
+        reduction method specification (str), bount (float)
+        out: rf important model, reduced training set, kept feature names (list)
+        """
         to_keep = fi[fi.imp>0.005].features
 
         xs_imp = xs[to_keep]
@@ -85,17 +102,34 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         return m_imp, xs_imp, valid_xs_imp, to_keep 
     
-    #Function to Calculate Figure Size Based on "n"
     def figsizecalc(n):
+        """Function to Calculate Figure Size Based on "n"
+        in: no. of classes (int)
+        out: figure width (float)
+        """
         leftmargin=0.5 #inches
         rightmargin=0.5 #inches
-        categorysize = 0.5 #inches
+        categorysize=0.5 #inches
         figwidth = leftmargin + rightmargin + n*categorysize
         
         return figwidth
+
+    def save_image(img, img_name, type):
+        """Saves matplotlib and plotly images to images folder and then to pdf
+        in: matplotlib plt or plotly fig, name of image and specification if "plotly" or not
+        """
+        img_path = f"images/{img_name}.png"
+
+        if type == "plotly":
+            img.write_image(img_path)
+        else:
+            img.savefig(img_path)
     
-    #Clustering Function Based on Similarity Capable of Finding Redundant Features
-    def cluster_columns(df, figwidth, font_size=8):
+    def cluster_columns(df, figwidth, feature_importance, font_size=8):
+        """Clustering Function Based on Similarity Capable of Finding Redundant Features
+        in: dataframe, width (float), feature importance dataframe
+        out: features to drop (list)
+        """
         corr = np.round(scipy.stats.spearmanr(df).correlation, 4)
         corr_condensed = hc.distance.squareform(1-corr)
         z = hc.linkage(corr_condensed, method='average')
@@ -117,21 +151,32 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         unique_data = list(map(list,set(map(tuple,clusters))))
 
+        #drop lowest importances
         to_drop = []
-        for lst in unique_data:
-            for i in range(len(lst)):
-                if i != 0:
-                    to_drop.append(lst[i])
-                else:
-                    pass
+        for cluster in unique_data:
+            importances = {}
+            for feature in cluster:
+                importances[feature] = feature_importance[feature_importance["features"] == feature]["imp"].values[0]
+            kept_feature = max(importances)
+                
+            for feature in importances:
+                if feature != kept_feature:
+                    to_drop.append(feature)
 
-        plt.title("Similarity Dendrogram", fontsize=font_size_title-4)    
-        st.pyplot(fig)
+        plt.title("Similarity Dendrogram", fontsize=font_size_title-4) 
+        try:   
+            st.pyplot(fig)
+            save_image(plt, "dendrogram", "plt")
+        except:
+            st.error("Generation of dendrogram encountered errors")
 
         return to_drop
     
-    #UMAP Fitting Function
     def draw_umap(n_neighbors, min_dist, n_components, data, metric='euclidean'):
+        """UMAP mapping 
+        in: n_neighbours (int), min distnace (float), dimensions (int), dataframe
+        out: dataframe
+        """
         fit = umap.UMAP(
             n_neighbors=n_neighbors,
             min_dist=min_dist,
@@ -143,20 +188,32 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         u = fit.fit_transform(data)
         return u
     
-    #Time Conversion
     def output_time(time_in_seconds):
+        """Time coversion for amount of seconds (probably function for this exists already)
+        in: seconds (int)
+        out: amount of time passed (str)
+        """
         if time_in_seconds < 60:
-            return str(round(time_in_seconds)) + " seconds"
+            return f"{round(time_in_seconds)} seconds"
         elif (time_in_seconds >= 60) & (time_in_seconds < 60*60):
             minutes = int(time_in_seconds // 60)
-            return str(minutes) + " minutes " + str(round(time_in_seconds - minutes * 60)) + " seconds"
+            return f"{minutes} minutes {round(time_in_seconds - minutes * 60)} seconds"
         else:
             minutes = int(time_in_seconds // 60)
             hours = int(minutes // 60)
-            return str(hours) + " hours " + str(minutes - hours * 60) + " minutes " + str(round(time_in_seconds - minutes * 60)) + " seconds"
+            return f"{hours} hours {minutes - hours * 60} minutes {round(time_in_seconds - minutes * 60)} seconds"
     
     def confusion_matrices_generation(which, dif1=0, dif2=0, dif3=0):
-        with st.spinner("Generating confusion matrices..."):   
+        """Generates confusion matrices and notes for the three times its called
+        in: which instance (str), accuracy difference (float), precision difference (float), recall difference (float)
+        """
+        with st.spinner("Generating confusion matrices..."): 
+            if which=="initial":
+                i = 1
+            elif which=="secondary":
+                i = 2
+            else:
+                i = 3  
 
             #confusion matrices 
             col1, col2, = st.columns(2)
@@ -169,6 +226,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                                                         cmap=plt.cm.Blues)
                 plt.title("Confusion matrix, without normalization")
                 st.pyplot(fig=plt)
+                save_image(plt, f"non_normalized_conf_mat_{i}", "plt")
             with col2:
                 ConfusionMatrixDisplay.from_predictions(valid_y, preds, 
                                                         display_labels=classnames, 
@@ -178,6 +236,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                                                         cmap=plt.cm.Blues)
                 plt.title("Normalized confusion matrix")
                 st.pyplot(fig=plt)
+                save_image(plt, f"normalized_conf_mat_{i}", "plt")
             
             elapsed_time = time.perf_counter() - t
         if which == "initial":
@@ -204,17 +263,40 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                     """)
         st.success('Confusion matrices generated! Time elapsed: {}'.format(output_time(elapsed_time)))
 
-    # def st_dtree(viz, height=None, width=None):
+    def st_dtree(viz, height=None, width=None):
+        """Use as a fix for displaying dtree visualisation
+        in: viz (dtree object), height (int), width (int)
+        """
+        dtree_html = f"<body>{viz.svg()}</body>"
 
-    #     dtree_html = f"<body>{viz.svg()}</body>"
+        components.html(dtree_html, height=height, width=width)
 
-    #     components.html(dtree_html, height=height, width=width)
+    def diagram_iterator(classnames, img_name, limit, start, spacing):
+        """Adds grid layout structure to plots and adds pages if necessary to pdf
+        in: class names (list), image set name (str), page limit (int), start point on page (int), spacing amount (int)
+        out: end point on page (int)
+        """
+        for class_, i in zip(classnames, iter(range(len(classnames)))):
+            if i*spacing + start >= limit and not i % 2:
+                pdf.add_page()
+                start = 0
+
+            if i % 2:
+                pdf.image(f"images/{img_name}_{class_}.png", 5, start+((i-1)/2)*spacing, width/2-10)
+            else:
+                act = i / 2 #actual no. that captures row iteration 
+                pdf.image(f"images/{img_name}_{class_}.png", width/2, start+act*spacing, width/2-10)
+                end = start+act*spacing
+
+        return end
 
     ##### Script Start #####
 
     font_size_title=16
 
     with st.spinner("Reading uploaded file..."):
+        # if dep_var == 'Phylum':
+        #     file='gs://reaction_presence_test/reaction_abundance_combined_phylum.csv'
         if index_col != None:
             df = pd.read_csv(file, index_col=index_col)
         else:
@@ -265,13 +347,13 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         valid_xs,valid_y = to.valid.xs,to.valid.y
 
         #Decision Tree example
-        dtm = DecisionTreeClassifier(max_leaf_nodes=4)
-        dtm.fit(xs, y)
+        # dtm = DecisionTreeClassifier(max_leaf_nodes=4)
+        # dtm.fit(xs, y)
 
-        if len(xs) > 500:
-            samp_idx = np.random.permutation(len(y))[:500]
-        else:
-            samp_idx = np.random.permutation(len(y))[:len(xs)]
+        # if len(xs) > 500:
+        #     samp_idx = np.random.permutation(len(y))[:500]
+        # else:
+        #     samp_idx = np.random.permutation(len(y))[:len(xs)]
 
         # viz = dtreeviz(dtm, xs.iloc[samp_idx], y.iloc[samp_idx], xs.columns, dep_var,
         # fontname='DejaVu Sans', scale=1.6, label_fontsize=10, class_names=classnames, title="Decision Tree")
@@ -287,7 +369,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     #     This is a representation of a singular decision tree in the random forest used for this classification problem.
     #     The random forest is comprised of many decision trees. The model's decision classification is the majority vote of all the decision trees.
     #     """)
-    #st.image(image, use_column_width=True)
+
     st.success('Initial Model training done! Time elapsed: {}'.format(output_time(elapsed_time)))
         
     preds = m.predict(valid_xs)
@@ -320,10 +402,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             yaxis_title="Features",
         )
         st.plotly_chart(fig)
+        save_image(fig, "feature_importance", "plotly")
 
         with st.expander("See notes"):
             st.write(f"""
-            feature importance is calculated by the decrease in node impurity (a measure of how well the node splits the data), 
+            Feature importance is calculated by the decrease in node impurity (a measure of how well the node splits the data), 
             weighted by the probability of reaching that node. 
             The most important features have the highest values, although a feature being on top in this diagram does not necessarily mean its *the* most important feature. 
             It is dependent on how the current model has arranged its trees. Redoing the analysis, you will see a different list. However, truly important features will 
@@ -337,13 +420,16 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     st.success('Model generated with important features done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
     preds = m_imp.predict(valid_xs_imp)
-    #st.write(f"##### Reduction in features: {len(xs.columns)} " +  r"""$$\rightarrow$$""" + f" {len(xs_imp.columns)}")
-    #st.write(f"##### Model Metrics with the most important {len(xs_imp.columns)} features:")
     precision_important = round(precision_score(valid_y, preds, average='macro')*100, 2)
     recall_important = round(recall_score(valid_y, preds, average='macro')*100, 2)
     accuracy_important = round(accuracy_score(valid_y, preds)*100, 2)
-    #st.write(pd.DataFrame({'Score': [precision, recall, accuracy]}, index=["Precision", "Recall", "Accuracy"]))
-    st.metric("Number of important features kept", f"{len(xs_imp.columns)}", f"{(len(xs_imp.columns)-len(xs.columns))} reduction in features", delta_color="off")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Number of important features kept", f"{len(xs_imp.columns)}", f"{(len(xs_imp.columns)-len(xs.columns))} reduction in features", delta_color="off")
+    with col2:
+        st.metric("Reduction in dataset size", f"{round(((len(xs_imp.columns)-len(xs.columns))/len(xs.columns))*100, 2)}%")
+
     st.write(f"##### Model Metrics with the most important {len(xs_imp.columns)} features")
     col1, col2, col3 = st.columns(3)
     dif1 = round(accuracy_important-accuracy_initial, 2)
@@ -353,7 +439,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     col2.metric("Precision", str(precision_important) + "%", str(dif2) + "%")
     col3.metric("Recall", str(recall_important) + "%", str(dif3) + "%")
 
-    confusion_matrices_generation("non-initial", dif1, dif2, dif3)
+    confusion_matrices_generation("secondary", dif1, dif2, dif3)
     with st.spinner("Checking for redundant features..."):
 
         #feature importance important features
@@ -361,7 +447,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         
         #redundancy check
         figwidth = figsizecalc(len(xs_imp.columns) - 10)
-        to_drop = cluster_columns(xs_imp, figwidth)
+        to_drop = cluster_columns(xs_imp, figwidth, fi)
         
         elapsed_time = time.perf_counter() - t
     with st.expander("See notes"):
@@ -387,13 +473,10 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     st.success('Final model done! Time elapsed: {}'.format(output_time(elapsed_time)))
     
     preds = m_final.predict(valid_xs_final)
-    
-    #st.write(f"##### Reduction in features: {len(xs_imp.columns)} " +  r"""$$\rightarrow$$""" + f" {len(xs_final.columns)}")
 
     precision_final = round(precision_score(valid_y, preds, average='macro')*100, 2)
     recall_final = round(recall_score(valid_y, preds, average='macro')*100, 2)
     accuracy_final = round(accuracy_score(valid_y, preds)*100, 2)
-    #st.write(pd.DataFrame({'Score': [precision, recall, accuracy]}, index=["Precision", "Recall", "Accuracy"]))
 
     st.metric("Final number of features", f"{len(xs_final.columns)}", f"{-1*((len(xs_final.columns)-len(xs_imp.columns)))} redundant features dropped", delta_color="off")
     st.write(f"##### Model Metrics with the final {len(xs_final.columns)} features")
@@ -405,7 +488,8 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     col2.metric("Precision", str(precision_final) + "%", str(dif2) + "%")
     col3.metric("Recall", str(recall_final) + "%", str(dif3) + "%")
 
-    confusion_matrices_generation("non-initial", dif1, dif2, dif3)
+    confusion_matrices_generation("final", dif1, dif2, dif3)
+
     #feature importance final features
     fi = rf_feat_importance(m_final, xs_final)
     
@@ -430,6 +514,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             else:
                 with col1:
                     st.plotly_chart(fig)
+            save_image(fig, f"heatmap_{class_}", "plotly")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -456,6 +541,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             else:
                 with col1:
                     st.pyplot(fig=plt)
+            save_image(plt, f"histogram_{class_}", "plt")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -503,11 +589,9 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         sc.legend_.set_title(None)
 
-        #col1, col2, = st.columns(2)
-        #with col1:
         plt.title("LDA 2D", fontsize=font_size_title)
-        #plt.figure(dpi=300)
-        st.pyplot(fig=plt, dpi=600)
+        st.pyplot(fig=plt, dpi=300)
+        save_image(plt, f"lda_2d", "plt")
 
         #lda 3d
         cmap = ListedColormap(sns.color_palette("hls", len(classnames)).as_hex())
@@ -536,13 +620,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             except:
                 pass
 
-        leg = ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1), prop={"size":10}) #, bbox_to_anchor=(1.0125, 1), loc=2
+        ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1), prop={"size":10}) #, bbox_to_anchor=(1.0125, 1), loc=2
         
-        #with col2:
         plt.tight_layout()
         plt.title("LDA 3D", fontsize=font_size_title)
-        #plt.figure(dpi=300)
-        st.pyplot(fig=plt, dpi=600)
+        st.pyplot(fig=plt, dpi=300)
+        save_image(plt, f"lda_3d", "plt")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -552,14 +635,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             but also reveals the datapoints the model may have struggled with. 
             """)
         
-        #col1, col2, = st.columns(2)
-        #with col1:
         fig = px.scatter(LDA_df, x="l1", y="l2", color=dep_var+" label", title="Interactive LDA 2D")
         fig.update_traces(marker=dict(line=dict(width=0.8,
                                     color='White')),
                 selector=dict(mode='markers'))
         st.plotly_chart(fig)
-        #with col2:
+
         fig = px.scatter_3d(LDA_df_3d, x="l1", y="l2", z="l3", color=dep_var+" label", title="Interactive LDA 3D")
         fig.update_traces(marker=dict(line=dict(width=0.8,
                                     color='White')),
@@ -595,12 +676,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             )
 
             sc.legend_.set_title(None)
-            #col1, col2, = st.columns(2)
-            #with col1:
+
             plt.title("UMAP 2D: n_neighbours={}".format(n), fontsize=font_size_title+10)
             plt.legend(prop={"size":20})
             #plt.figure(dpi=300)
-            st.pyplot(fig=plt, dpi=600)
+            st.pyplot(fig=plt, dpi=300)
+            save_image(plt, f"umap_2d", "plt")
 
             #umap 3d
             umap_result = draw_umap(n, 0.1, 3, df_final)
@@ -631,11 +712,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                     pass
 
             ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1)) #, bbox_to_anchor=(1.0125, 1), loc=2
-            #with col2:
+
             plt.tight_layout()
             plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
-            #plt.figure(dpi=300)
-            st.pyplot(fig=plt, dpi=600)
+
+            st.pyplot(fig=plt, dpi=300)
+            save_image(plt, f"umap_3d", "plt")
 
             with st.expander("See notes"):
                 st.write(f"""
@@ -643,14 +725,12 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                 If the dataset is inherently divisible based on the final features, you should be able to see clear separation in the visualisations. 
                 """)
 
-            #col1, col2, = st.columns(2)
-            #with col1:
             fig = px.scatter(umap_df_2d, x="u1", y="u2", color=dep_var+" label", title="Interactive UMAP 2D")
             fig.update_traces(marker=dict(line=dict(width=0.8,
                                         color='White')),
                 selector=dict(mode='markers'))
             st.plotly_chart(fig)
-            #with col2:
+
             fig = px.scatter_3d(umap_df, x="u1", y="u2", z="u3", color=dep_var+" label", title="Interactive UMAP 3D")
             fig.update_traces(marker=dict(line=dict(width=0.8,
                                         color='White')),
@@ -673,5 +753,61 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     now = datetime.now().strftime("%H:%M:%S")
 
     st.metric("End time", now)
-    
-    return to_keep
+
+    #pdf initialisation and generation
+    width = 210
+    height = 297
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    #Title
+    pdf.set_font('Arial', '', 24)  
+    pdf.write(5, f"Random Forest Analysis Summary Report")
+    pdf.ln(10)
+    pdf.set_font('Arial', '', 16)
+    pdf.write(4, f"Number of classes: {len(classnames)}")
+    pdf.ln(5)
+    pdf.write(4, f"Shape of dataset: {df.shape}")
+    pdf.ln(5)
+    pdf.write(4, f"Training and test size: {len(xs), len(valid_y)}")
+    pdf.ln(5)
+
+    #First page
+    pdf.write(4, f"Model Metrics with all {len(xs.columns)} features")
+    pdf.ln(5)
+    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_initial}%, {precision_initial}%, {recall_initial}%")
+    pdf.image("images/normalized_conf_mat_1.png", 5, 60, width/2-10)
+    pdf.image("images/non_normalized_conf_mat_1.png", width/2, 60, width/2-10)
+    pdf.image("images/feature_importance.png", 5, 155, width, height/3+25)
+
+    #Second page
+    pdf.add_page()
+    pdf.write(4, f"Model Metrics with the {len(xs_imp.columns)} most important features")
+    pdf.ln(5)
+    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_important}%, {precision_important}%, {recall_important}%")
+    pdf.image("images/normalized_conf_mat_2.png", 5, 60, width/2-10)
+    pdf.image("images/non_normalized_conf_mat_2.png", width/2, 60, width/2-10)
+    pdf.image("images/dendrogram.png", 5, 155, width-40, height/3+25)
+
+    #Third & following pages
+    pdf.add_page()
+    pdf.write(4, f"Model Metrics without redundant features") #{', '.join(to_drop)}
+    pdf.ln(5)
+    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_final}%, {precision_final}%, {recall_final}%")
+    pdf.image("images/normalized_conf_mat_3.png", 5, 30, width/2-10)
+    pdf.image("images/non_normalized_conf_mat_3.png", width/2, 30, width/2-10)
+
+    end = diagram_iterator(classnames, "heatmap", 270, 120, 90)
+    end = diagram_iterator(classnames, "histogram", 270, end+90, 90)
+
+    #Final pages
+    pdf.add_page()
+    pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
+    pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
+    if umap_op:
+        pdf.add_page()
+        pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
+        pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+
+    return to_keep, pdf
