@@ -721,7 +721,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
             with st.expander("See notes"):
                 st.write(f"""
-                UMAP’s capability is to group unlabelled data based on similarity, done on the reduced dataset these are the resulting visualisations. 
+                UMAP's capability is to group unlabelled data based on similarity, done on the reduced dataset these are the resulting visualisations. 
                 If the dataset is inherently divisible based on the final features, you should be able to see clear separation in the visualisations. 
                 """)
 
@@ -748,66 +748,71 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         pass
     
     elapsed_time = time.perf_counter() - t
-    st.success('Random forest analysis done! Time elapsed: {}'.format(output_time(elapsed_time)))
     
     now = datetime.now().strftime("%H:%M:%S")
 
     st.metric("End time", now)
+    st.success('Random forest analysis done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
-    #pdf initialisation and generation
-    width = 210
-    height = 297
+    with st.spinner("Generating PDF..."):   
 
-    pdf = FPDF()
-    pdf.add_page()
+        #pdf initialisation and generation
+        width = 210
+        height = 297
 
-    #Title
-    pdf.set_font('Arial', '', 24)  
-    pdf.write(5, f"Random Forest Analysis Summary Report")
-    pdf.ln(10)
-    pdf.set_font('Arial', '', 16)
-    pdf.write(4, f"Number of classes: {len(classnames)}")
-    pdf.ln(5)
-    pdf.write(4, f"Shape of dataset: {df.shape}")
-    pdf.ln(5)
-    pdf.write(4, f"Training and test size: {len(xs), len(valid_y)}")
-    pdf.ln(5)
-
-    #First page
-    pdf.write(4, f"Model Metrics with all {len(xs.columns)} features")
-    pdf.ln(5)
-    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_initial}%, {precision_initial}%, {recall_initial}%")
-    pdf.image("images/normalized_conf_mat_1.png", 5, 60, width/2-10)
-    pdf.image("images/non_normalized_conf_mat_1.png", width/2, 60, width/2-10)
-    pdf.image("images/feature_importance.png", 5, 155, width, height/3+25)
-
-    #Second page
-    pdf.add_page()
-    pdf.write(4, f"Model Metrics with the {len(xs_imp.columns)} most important features")
-    pdf.ln(5)
-    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_important}%, {precision_important}%, {recall_important}%")
-    pdf.image("images/normalized_conf_mat_2.png", 5, 60, width/2-10)
-    pdf.image("images/non_normalized_conf_mat_2.png", width/2, 60, width/2-10)
-    pdf.image("images/dendrogram.png", 5, 155, width-40, height/3+25)
-
-    #Third & following pages
-    pdf.add_page()
-    pdf.write(4, f"Model Metrics without redundant features") #{', '.join(to_drop)}
-    pdf.ln(5)
-    pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_final}%, {precision_final}%, {recall_final}%")
-    pdf.image("images/normalized_conf_mat_3.png", 5, 30, width/2-10)
-    pdf.image("images/non_normalized_conf_mat_3.png", width/2, 30, width/2-10)
-
-    end = diagram_iterator(classnames, "heatmap", 270, 120, 90)
-    end = diagram_iterator(classnames, "histogram", 270, end+90, 90)
-
-    #Final pages
-    pdf.add_page()
-    pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
-    pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
-    if umap_op:
+        pdf = FPDF()
         pdf.add_page()
-        pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
-        pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+
+        #Title
+        pdf.set_font('Arial', '', 24)  
+        pdf.write(5, f"Random Forest Analysis Summary Report")
+        pdf.ln(10)
+        pdf.set_font('Arial', '', 16)
+        pdf.write(4, f"Number of classes: {len(classnames)}")
+        pdf.ln(5)
+        pdf.write(4, f"Shape of dataset: {df.shape}")
+        pdf.ln(5)
+        pdf.write(4, f"Training and test size: {len(xs), len(valid_y)}")
+        pdf.ln(5)
+
+        #First page
+        pdf.write(4, f"Model Metrics with all {len(xs.columns)} features")
+        pdf.ln(5)
+        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_initial}%, {precision_initial}%, {recall_initial}%")
+        pdf.image("images/normalized_conf_mat_1.png", 5, 60, width/2-10)
+        pdf.image("images/non_normalized_conf_mat_1.png", width/2, 60, width/2-10)
+        pdf.image("images/feature_importance.png", 5, 155, width, height/3+25)
+
+        #Second page
+        pdf.add_page()
+        pdf.write(4, f"Model Metrics with the {len(xs_imp.columns)} most important features")
+        pdf.ln(5)
+        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_important}%, {precision_important}%, {recall_important}%")
+        pdf.image("images/normalized_conf_mat_2.png", 5, 60, width/2-10)
+        pdf.image("images/non_normalized_conf_mat_2.png", width/2, 60, width/2-10)
+        pdf.image("images/dendrogram.png", 5, 155, width-40, height/3+25)
+
+        #Third & following pages
+        pdf.add_page()
+        pdf.write(4, f"Model Metrics without redundant features") #{', '.join(to_drop)}
+        pdf.ln(5)
+        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_final}%, {precision_final}%, {recall_final}%")
+        pdf.image("images/normalized_conf_mat_3.png", 5, 30, width/2-10)
+        pdf.image("images/non_normalized_conf_mat_3.png", width/2, 30, width/2-10)
+
+        end = diagram_iterator(classnames, "heatmap", 270, 120, 90)
+        end = diagram_iterator(classnames, "histogram", 270, end+90, 90)
+
+        #Final pages
+        pdf.add_page()
+        pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
+        pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
+        if umap_op:
+            pdf.add_page()
+            pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
+            pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+
+    elapsed_time = time.perf_counter() - t
+    st.success("PDF done! Time elapsed: {}".format(output_time(elapsed_time)))
 
     return to_keep, pdf
