@@ -6,7 +6,7 @@ import base64
 
 def create_download_link(val, filename):
     b64 = base64.b64encode(val)  # val looks like b'...'
-    return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download pdf report</a>'
+    return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download PDF summary report</a>'
 
 st.set_page_config(
     page_title="Random Forest Analysis",
@@ -34,13 +34,13 @@ with st.expander("See explanation"):
     To discover the minimum required data to effectively classify data, feature importance needs to be gauged. 
     In a random forest, feature importance is calculated by the decrease in node impurity which is a measure of how well the node splits the data, weighted by the probability of reaching that node. 
     The probability of reaching a node is calculated by the number of data entries that reach that specific node, divided by the total number of data entries. 
-    The most important features have the highest values. If the most important features are known the dataset can be reduced to these features and maintain levels accuracy, recall and precision that remain close to the initial model’s levels which is trained on the entire dataset. 
+    The most important features have the highest values. If the most important features are known the dataset can be reduced to these features and maintain levels accuracy, recall and precision that remain close to the initial model's levels which is trained on the entire dataset. 
 
     To do this new models must be continuously trained on a growing number of important features until these metrics are within acceptable bounds of the metric standards of the initial model. 
-    This is where random forest’s fast training time is of particular use and other machine learning models become obsolete. 
+    This is where random forest's fast training time is of particular use and other machine learning models become obsolete. 
 
     Once an optimum amount of important features are established, any potential redundancy of these features can be found by determining similarity. 
-    This is done by calculating the Spearman’s Rank-Order Correlation for the features. All but one of the closely related features can be removed with minimal impact to accuracy, thus, reducing the dataset size furthermore.
+    This is done by calculating the Spearman's Rank-Order Correlation for the features. All but one of the closely related features can be removed with minimal impact to accuracy, thus, reducing the dataset size furthermore.
     The resulting reduction in the size of the dataset can be seen as reduction in the dimensionality of the dataset and now more easily lends itself to visualization techniques.
     Linear Discriminant Analysis is used to find an optimum representation of the reduced dataset in three dimensional space. 
     UMAP is used to visually show if the dataset has inherent divisibility.
@@ -109,7 +109,7 @@ else:
             st.header("Final features")
             st.table(features_df)
 
-            html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
+            html = create_download_link(pdf.output(dest="S").encode("latin-1"), "summary_report")
 
             st.markdown(html, unsafe_allow_html=True)
 
