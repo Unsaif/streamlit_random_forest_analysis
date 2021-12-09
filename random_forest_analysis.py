@@ -452,7 +452,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         elapsed_time = time.perf_counter() - t
     with st.expander("See notes"):
         st.write(f"""
-        Similar features are clustered together, merged early and far from the root; of these clusters all but one are kept, the rest dropped. 
+        Similar features are clustered together, merged early and far from the root; of these clusters only the feature with the highest importance is kept, the rest dropped. 
         In this case features {', '.join(to_drop)} were chosen to be dropped. 
         """)
     st.success('Redundancy check done! Time elapsed: {}'.format(output_time(elapsed_time)))
