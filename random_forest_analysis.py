@@ -4,7 +4,7 @@ import datetime
 import pandas as pd 
 from fastai.tabular.all import *
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
+#from sklearn.tree import DecisionTreeClassifier
 from dtreeviz.trees import *
 import streamlit.components.v1 as components
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -304,8 +304,6 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             df = pd.read_csv(file)
 
     st.success("File read!")
-    
-    uni = df
 
     classnames = list(df[dep_var].unique())
     classnames.sort()
@@ -812,11 +810,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         #Final pages
         pdf.add_page()
         pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
-        #pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
+        pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
         if umap_op:
             pdf.add_page()
             pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
-            #pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+            pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
 
     elapsed_time = time.perf_counter() - t
     st.success("PDF done! Time elapsed: {}".format(output_time(elapsed_time)))
