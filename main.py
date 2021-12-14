@@ -96,14 +96,13 @@ else:
             index_col = st.text_input("Please indicate the index column if there is one, if not leave blank")
             if index_col == "":
                 index_col = None
-            kept_features = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=idx, index_col=index_col)
+            kept_features, pdf = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=idx, index_col=index_col)
             features_df = pd.DataFrame(columns=["Features"])
             features_df["Features"] = kept_features
             st.header("Final features")
             st.table(features_df)
         else:
-            kept_features, pdf, df = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
-            print(kept_features)
+            kept_features, pdf = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
             features_df = pd.DataFrame(columns=["Features"])
             features_df["Features"] = kept_features
             st.header("Final features")
