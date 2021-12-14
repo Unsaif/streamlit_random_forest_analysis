@@ -21,15 +21,15 @@ import umap.umap_ as umap
 
 import plotly.express as px
 
-# import warnings
-# warnings.filterwarnings('ignore')
+import warnings
+warnings.filterwarnings('ignore')
 
-# from PIL import Image 
+from PIL import Image 
 
-# Image.MAX_IMAGE_PIXELS = 1000000000
+Image.MAX_IMAGE_PIXELS = 1000000000
 
 # from fpdf import FPDF
-# pd.set_option('mode.chained_assignment', None)
+pd.set_option('mode.chained_assignment', None)
 
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     
