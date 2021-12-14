@@ -5,7 +5,7 @@ import pandas as pd
 from fastai.tabular.all import *
 from sklearn.ensemble import RandomForestClassifier
 #from sklearn.tree import DecisionTreeClassifier
-from dtreeviz.trees import *
+#from dtreeviz.trees import *
 import streamlit.components.v1 as components
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_score, recall_score, accuracy_score
