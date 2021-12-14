@@ -272,24 +272,24 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         components.html(dtree_html, height=height, width=width)
 
-    def diagram_iterator(classnames, img_name, limit, start, spacing):
-        """Adds grid layout structure to plots and adds pages if necessary to pdf
-        in: class names (list), image set name (str), page limit (int), start point on page (int), spacing amount (int)
-        out: end point on page (int)
-        """
-        for class_, i in zip(classnames, iter(range(len(classnames)))):
-            if i*spacing + start >= limit and not i % 2:
-                pdf.add_page()
-                start = 0
+    # def diagram_iterator(classnames, img_name, limit, start, spacing):
+    #     """Adds grid layout structure to plots and adds pages if necessary to pdf
+    #     in: class names (list), image set name (str), page limit (int), start point on page (int), spacing amount (int)
+    #     out: end point on page (int)
+    #     """
+    #     for class_, i in zip(classnames, iter(range(len(classnames)))):
+    #         if i*spacing + start >= limit and not i % 2:
+    #             pdf.add_page()
+    #             start = 0
 
-            if i % 2:
-                pdf.image(f"images/{img_name}_{class_}.png", 5, start+((i-1)/2)*spacing, width/2-10)
-            else:
-                act = i / 2 #actual no. that captures row iteration 
-                pdf.image(f"images/{img_name}_{class_}.png", width/2, start+act*spacing, width/2-10)
-                end = start+act*spacing
+    #         if i % 2:
+    #             pdf.image(f"images/{img_name}_{class_}.png", 5, start+((i-1)/2)*spacing, width/2-10)
+    #         else:
+    #             act = i / 2 #actual no. that captures row iteration 
+    #             pdf.image(f"images/{img_name}_{class_}.png", width/2, start+act*spacing, width/2-10)
+    #             end = start+act*spacing
 
-        return end
+    #     return end
 
     ##### Script Start #####
 
