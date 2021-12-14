@@ -1,4 +1,3 @@
 .venv_streamlit
 images/*
 !images/.gitkeep
-.streamlit
