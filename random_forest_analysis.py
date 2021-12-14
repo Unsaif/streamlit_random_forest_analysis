@@ -21,15 +21,15 @@ import umap.umap_ as umap
 
 import plotly.express as px
 
-import warnings
-warnings.filterwarnings('ignore')
+# import warnings
+# warnings.filterwarnings('ignore')
 
-from PIL import Image 
+# from PIL import Image 
 
-Image.MAX_IMAGE_PIXELS = 1000000000
+# Image.MAX_IMAGE_PIXELS = 1000000000
 
-from fpdf import FPDF
-pd.set_option('mode.chained_assignment', None)
+# from fpdf import FPDF
+# pd.set_option('mode.chained_assignment', None)
 
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     
@@ -115,16 +115,16 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         
         return figwidth
 
-    def save_image(img, img_name, type):
-        """Saves matplotlib and plotly images to images folder and then to pdf
-        in: matplotlib plt or plotly fig, name of image and specification if "plotly" or not
-        """
-        img_path = f"images/{img_name}.png"
+    # def save_image(img, img_name, type):
+    #     """Saves matplotlib and plotly images to images folder and then to pdf
+    #     in: matplotlib plt or plotly fig, name of image and specification if "plotly" or not
+    #     """
+    #     img_path = f"images/{img_name}.png"
 
-        if type == "plotly":
-            img.write_image(img_path)
-        else:
-            img.savefig(img_path)
+    #     if type == "plotly":
+    #         img.write_image(img_path)
+    #     else:
+    #         img.savefig(img_path)
     
     def cluster_columns(df, figwidth, feature_importance, font_size=8):
         """Clustering Function Based on Similarity Capable of Finding Redundant Features
@@ -167,7 +167,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         plt.title("Similarity Dendrogram", fontsize=font_size_title-4) 
         try:   
             st.pyplot(fig)
-            save_image(plt, "dendrogram", "plt")
+            # save_image(plt, "dendrogram", "plt")
         except:
             st.error("Generation of dendrogram encountered errors")
 
@@ -227,7 +227,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                                                         cmap=plt.cm.Blues)
                 plt.title("Confusion matrix, without normalization")
                 st.pyplot(fig=plt)
-                save_image(plt, f"non_normalized_conf_mat_{i}", "plt")
+                # save_image(plt, f"non_normalized_conf_mat_{i}", "plt")
             with col2:
                 ConfusionMatrixDisplay.from_predictions(valid_y, preds, 
                                                         display_labels=classnames, 
@@ -237,7 +237,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                                                         cmap=plt.cm.Blues)
                 plt.title("Normalized confusion matrix")
                 st.pyplot(fig=plt)
-                save_image(plt, f"normalized_conf_mat_{i}", "plt")
+                # save_image(plt, f"normalized_conf_mat_{i}", "plt")
             
             elapsed_time = time.perf_counter() - t
         if which == "initial":
@@ -404,7 +404,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             yaxis_title="Features",
         )
         st.plotly_chart(fig)
-        save_image(fig, "feature_importance", "plotly")
+        # save_image(fig, "feature_importance", "plotly")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -516,7 +516,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             else:
                 with col1:
                     st.plotly_chart(fig)
-            save_image(fig, f"heatmap_{class_}", "plotly")
+            # save_image(fig, f"heatmap_{class_}", "plotly")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -543,7 +543,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             else:
                 with col1:
                     st.pyplot(fig=plt)
-            save_image(plt, f"histogram_{class_}", "plt")
+            # save_image(plt, f"histogram_{class_}", "plt")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -594,7 +594,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
         plt.title("LDA 2D", fontsize=font_size_title)
         st.pyplot(fig=plt, dpi=300)
-        save_image(plt, f"lda_2d", "plt")
+        # save_image(plt, f"lda_2d", "plt")
 
         #lda 3d
         cmap = ListedColormap(sns.color_palette("hls", len(classnames)).as_hex())
@@ -628,7 +628,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         plt.tight_layout()
         plt.title("LDA 3D", fontsize=font_size_title)
         st.pyplot(fig=plt, dpi=300)
-        save_image(plt, f"lda_3d", "plt")
+        # save_image(plt, f"lda_3d", "plt")
 
         with st.expander("See notes"):
             st.write(f"""
@@ -684,7 +684,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             plt.legend(prop={"size":20})
             #plt.figure(dpi=300)
             st.pyplot(fig=plt, dpi=300)
-            save_image(plt, f"umap_2d", "plt")
+            # save_image(plt, f"umap_2d", "plt")
 
             #umap 3d
             umap_result = draw_umap(n, 0.1, 3, df_final)
@@ -720,7 +720,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
 
             st.pyplot(fig=plt, dpi=300)
-            save_image(plt, f"umap_3d", "plt")
+            # save_image(plt, f"umap_3d", "plt")
 
             with st.expander("See notes"):
                 st.write(f"""
@@ -758,65 +758,65 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     
     st.success('Random forest analysis done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
-    with st.spinner("Generating PDF..."):   
+    # with st.spinner("Generating PDF..."):   
 
-        #pdf initialisation and generation
-        width = 210
-        height = 297
+    #     #pdf initialisation and generation
+    #     width = 210
+    #     height = 297
 
-        pdf = FPDF()
-        pdf.add_page()
+    #     pdf = FPDF()
+    #     pdf.add_page()
 
-        #Title
-        pdf.set_font('Arial', '', 24)  
-        pdf.write(5, f"Random Forest Analysis Summary Report")
-        pdf.ln(10)
-        pdf.set_font('Arial', '', 16)
-        pdf.write(4, f"Number of classes: {len(classnames)}")
-        pdf.ln(5)
-        pdf.write(4, f"Shape of dataset: {df.shape}")
-        pdf.ln(5)
-        pdf.write(4, f"Training and test size: {len(xs), len(valid_y)}")
-        pdf.ln(5)
+    #     #Title
+    #     pdf.set_font('Arial', '', 24)  
+    #     pdf.write(5, f"Random Forest Analysis Summary Report")
+    #     pdf.ln(10)
+    #     pdf.set_font('Arial', '', 16)
+    #     pdf.write(4, f"Number of classes: {len(classnames)}")
+    #     pdf.ln(5)
+    #     pdf.write(4, f"Shape of dataset: {df.shape}")
+    #     pdf.ln(5)
+    #     pdf.write(4, f"Training and test size: {len(xs), len(valid_y)}")
+    #     pdf.ln(5)
 
-        #First page
-        pdf.write(4, f"Model Metrics with all {len(xs.columns)} features")
-        pdf.ln(5)
-        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_initial}%, {precision_initial}%, {recall_initial}%")
-        pdf.image("images/normalized_conf_mat_1.png", 5, 60, width/2-10)
-        pdf.image("images/non_normalized_conf_mat_1.png", width/2, 60, width/2-10)
-        pdf.image("images/feature_importance.png", 5, 155, width, height/3+25)
+    #     #First page
+    #     pdf.write(4, f"Model Metrics with all {len(xs.columns)} features")
+    #     pdf.ln(5)
+    #     pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_initial}%, {precision_initial}%, {recall_initial}%")
+    #     pdf.image("images/normalized_conf_mat_1.png", 5, 60, width/2-10)
+    #     pdf.image("images/non_normalized_conf_mat_1.png", width/2, 60, width/2-10)
+    #     pdf.image("images/feature_importance.png", 5, 155, width, height/3+25)
 
-        #Second page
-        pdf.add_page()
-        pdf.write(4, f"Model Metrics with the {len(xs_imp.columns)} most important features")
-        pdf.ln(5)
-        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_important}%, {precision_important}%, {recall_important}%")
-        pdf.image("images/normalized_conf_mat_2.png", 5, 60, width/2-10)
-        pdf.image("images/non_normalized_conf_mat_2.png", width/2, 60, width/2-10)
-        pdf.image("images/dendrogram.png", 5, 155, width-40, height/3+25)
+    #     #Second page
+    #     pdf.add_page()
+    #     pdf.write(4, f"Model Metrics with the {len(xs_imp.columns)} most important features")
+    #     pdf.ln(5)
+    #     pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_important}%, {precision_important}%, {recall_important}%")
+    #     pdf.image("images/normalized_conf_mat_2.png", 5, 60, width/2-10)
+    #     pdf.image("images/non_normalized_conf_mat_2.png", width/2, 60, width/2-10)
+    #     pdf.image("images/dendrogram.png", 5, 155, width-40, height/3+25)
 
-        #Third & following pages
-        pdf.add_page()
-        pdf.write(4, f"Model Metrics without redundant features") #{', '.join(to_drop)}
-        pdf.ln(5)
-        pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_final}%, {precision_final}%, {recall_final}%")
-        pdf.image("images/normalized_conf_mat_3.png", 5, 30, width/2-10)
-        pdf.image("images/non_normalized_conf_mat_3.png", width/2, 30, width/2-10)
+    #     #Third & following pages
+    #     pdf.add_page()
+    #     pdf.write(4, f"Model Metrics without redundant features") #{', '.join(to_drop)}
+    #     pdf.ln(5)
+    #     pdf.write(4, f"Accuracy, Precision, Recall: {accuracy_final}%, {precision_final}%, {recall_final}%")
+    #     pdf.image("images/normalized_conf_mat_3.png", 5, 30, width/2-10)
+    #     pdf.image("images/non_normalized_conf_mat_3.png", width/2, 30, width/2-10)
 
-        end = diagram_iterator(classnames, "heatmap", 270, 120, 90)
-        end = diagram_iterator(classnames, "histogram", 270, end+90, 90)
+    #     end = diagram_iterator(classnames, "heatmap", 270, 120, 90)
+    #     end = diagram_iterator(classnames, "histogram", 270, end+90, 90)
 
-        #Final pages
-        pdf.add_page()
-        pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
-        pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
-        if umap_op:
-            pdf.add_page()
-            pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
-            pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+    #     #Final pages
+    #     pdf.add_page()
+    #     pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
+    #     pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
+    #     if umap_op:
+    #         pdf.add_page()
+    #         pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
+    #         pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
 
-    elapsed_time = time.perf_counter() - t
-    st.success("PDF done! Time elapsed: {}".format(output_time(elapsed_time)))
+    # elapsed_time = time.perf_counter() - t
+    # st.success("PDF done! Time elapsed: {}".format(output_time(elapsed_time)))
 
-    return to_keep, pdf
+    return to_keep
