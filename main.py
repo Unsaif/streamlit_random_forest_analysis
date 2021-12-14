@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from random_forest_analysis import random_forest_analysis
-from fpdf import FPDF
 import base64
 
 def create_download_link(val, filename):
@@ -103,7 +102,8 @@ else:
             st.header("Final features")
             st.table(features_df)
         else:
-            kept_features, pdf = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
+            kept_features, pdf, df = random_forest_analysis(file, dep_var, reduction_method=reduction_method, umap_op=umap_op, n=n, bound=bound*10**-4, split=split)
+            print(kept_features)
             features_df = pd.DataFrame(columns=["Features"])
             features_df["Features"] = kept_features
             st.header("Final features")
@@ -112,5 +112,3 @@ else:
             html = create_download_link(pdf.output(dest="S").encode("latin-1"), "summary_report")
 
             st.markdown(html, unsafe_allow_html=True)
-
-

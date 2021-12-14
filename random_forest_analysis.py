@@ -29,6 +29,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = 1000000000
 
 from fpdf import FPDF
+pd.set_option('mode.chained_assignment', None)
 
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     
@@ -301,7 +302,10 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
             df = pd.read_csv(file, index_col=index_col)
         else:
             df = pd.read_csv(file)
+
     st.success("File read!")
+    
+    uni = df
 
     classnames = list(df[dep_var].unique())
     classnames.sort()
@@ -553,6 +557,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         
         elapsed_time = time.perf_counter() - t
     st.success('Heatmap and histogram done! Time elapsed: {}'.format(output_time(elapsed_time)))
+
     with st.spinner("Generating LDA plots..."):
     
         #reconstructing initial dataframe (needed as dataframe has been processed with fastai)
@@ -752,6 +757,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     now = datetime.now().strftime("%H:%M:%S")
 
     st.metric("End time", now)
+    
     st.success('Random forest analysis done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
     with st.spinner("Generating PDF..."):   
@@ -806,11 +812,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         #Final pages
         pdf.add_page()
         pdf.image("images/lda_2d.png", 5, 30, width-40, height/3+25)
-        pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
+        #pdf.image("images/lda_3d.png", 5, 150, width-40, height/3+25)
         if umap_op:
             pdf.add_page()
             pdf.image("images/umap_2d.png", 5, 30, width-40, height/3+25)
-            pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
+            #pdf.image("images/umap_3d.png", 5, 150, width-40, height/3+25)
 
     elapsed_time = time.perf_counter() - t
     st.success("PDF done! Time elapsed: {}".format(output_time(elapsed_time)))
