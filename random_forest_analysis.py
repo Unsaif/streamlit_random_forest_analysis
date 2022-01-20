@@ -28,6 +28,8 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = 1000000000
 
+import os
+
 # from fpdf import FPDF
 pd.set_option('mode.chained_assignment', None)
 
@@ -50,14 +52,14 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                            ).sort_values('imp', ascending=False)
     
     #Finding Minimum Required Features Loop for Data Reduction Function
-    def data_reduction_loop(imp_offset, fi, xs, y, valid_xs):
+    def data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold):
         """Finding Minimum Required Features Loop for Data Reduction Function
         in: value used to adjust important feature search (float), feature importance dataframetraining dataframe, training classification column, validation dataframe
         out: new offset value (float), reduced training set, validation training set, rf important model, predictions for validation set, features to keep (list)
         """
 
-        imp_offset += 0.0001
-        to_keep = fi[fi.imp > (0.005 - imp_offset)].features
+        imp_offset += threshold/100
+        to_keep = fi[fi.imp > (threshold - imp_offset)].features
         xs_imp = xs[to_keep]
         valid_xs_imp = valid_xs[to_keep]
 
@@ -66,14 +68,19 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         preds = m_imp.predict(valid_xs_imp)
         
         return imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep
-      
+
+    import numpy as np  
     def data_reduction(m, xs, y, valid_xs, valid_y, fi, reduction_method, bound):
         """Fuction that Returns Most Important Features that Keeps Required Accuracy and if Chosen Recall and Precision, also
         in: rf model, training dataframe, training classification column, validation dataframe, validation classification column, feature importance dataframe
-        reduction method specification (str), bount (float)
+        reduction method specification (str), bound (float)
         out: rf important model, reduced training set, kept feature names (list)
         """
-        to_keep = fi[fi.imp>0.005].features
+        #print(fi["imp"].max())
+        fi_drop_zeroes = fi.loc[fi['imp'] != 0]
+        
+        threshold = fi_drop_zeroes["imp"].quantile(.99)#0.005 #threshold = max(feature score)
+        to_keep = fi[fi.imp>threshold].features
 
         xs_imp = xs[to_keep]
         valid_xs_imp = valid_xs[to_keep]
@@ -88,18 +95,18 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         
         if reduction_method == "accuracy":
             while (m.score(valid_xs, valid_y) - m_imp.score(valid_xs_imp, valid_y)) > bound:
-                if 0.005 - imp_offset == 0:
+                if threshold - imp_offset == 0:
                     m_imp = rf(xs_imp, y, len(xs_imp))
                     break
                 else:
-                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs)
+                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold)
         else:
             while (precision_score(valid_y, preds_full, average='macro') - precision_score(valid_y, preds, average='macro')) > bound or (recall_score(valid_y, preds_full, average='macro') - recall_score(valid_y, preds, average='macro')) > bound or (m.score(valid_xs, valid_y) - m_imp.score(valid_xs_imp, valid_y)) > bound:
-                if 0.005 - imp_offset == 0:
+                if threshold - imp_offset == 0:
                     m_imp = rf(xs_imp, y, len(xs_imp))
                     break
                 else:
-                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs)
+                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold)
 
         return m_imp, xs_imp, valid_xs_imp, to_keep 
     
@@ -294,14 +301,20 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     ##### Script Start #####
 
     font_size_title=16
+    
+    filename, file_extension = os.path.splitext(file.name)
+    if '.csv' == file_extension:
+        sep=","
+    else:
+        sep='\t'
 
     with st.spinner("Reading uploaded file..."):
         # if dep_var == 'Phylum':
         #     file='gs://reaction_presence_test/reaction_abundance_combined_phylum.csv'
         if index_col != None:
-            df = pd.read_csv(file, index_col=index_col)
+            df = pd.read_csv(file, index_col=index_col, sep=sep)
         else:
-            df = pd.read_csv(file)
+            df = pd.read_csv(file, sep=sep)
 
     st.success("File read!")
 
@@ -556,156 +569,66 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         elapsed_time = time.perf_counter() - t
     st.success('Heatmap and histogram done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
-    with st.spinner("Generating LDA plots..."):
-    
-        #reconstructing initial dataframe (needed as dataframe has been processed with fastai)
-        df_valid = valid_xs_final.join(valid_y, how="left")
-
-        frames = [df_train, df_valid]
-        df_combined = pd.concat(frames)
-
-        df_final = df_combined.drop(columns=[dep_var])
-        target_col = df_combined[dep_var]
-        label_col = df[dep_var]
+    if len(classnames) > 3:
+        with st.spinner("Generating LDA plots..."):
         
-        #lda
-        X_LDA = LDA(n_components=2).fit_transform(df_final, target_col)
-        X_LDA_3d = LDA(n_components=3).fit_transform(df_final, target_col)
-        
-        LDA_df = pd.DataFrame({"l1": X_LDA[:, 0], "l2": X_LDA[:, 1], dep_var: target_col})
-        LDA_df_3d = pd.DataFrame({"l1": X_LDA_3d[:, 0], "l2": X_LDA_3d[:, 1], "l3": X_LDA_3d[:, 2], dep_var: target_col})
-        
-        LDA_df = LDA_df.join(label_col, rsuffix=" label")
-        LDA_df_3d = LDA_df_3d.join(label_col, rsuffix=" label")
-        
-        #lda 2d
-        plt.figure(figsize=(15,15))
-        sc = sns.scatterplot(
-            x="l1", y="l2",
-            hue=dep_var + " label",
-            hue_order=classnames,
-            palette=sns.color_palette("hls", len(classnames)),
-            data=LDA_df,
-            legend="full",
-            alpha=1
-        )
+            #reconstructing initial dataframe (needed as dataframe has been processed with fastai)
+            df_valid = valid_xs_final.join(valid_y, how="left")
 
-        sc.legend_.set_title(None)
+            frames = [df_train, df_valid]
+            df_combined = pd.concat(frames)
 
-        plt.title("LDA 2D", fontsize=font_size_title)
-        st.pyplot(fig=plt, dpi=300)
-        # save_image(plt, f"lda_2d", "plt")
-
-        #lda 3d
-        cmap = ListedColormap(sns.color_palette("hls", len(classnames)).as_hex())
-
-        ax = plt.figure(figsize=(15,15)).gca(projection='3d')
-
-        sc = ax.scatter(
-            xs=LDA_df_3d["l1"], 
-            ys=LDA_df_3d["l2"], 
-            zs=LDA_df_3d["l3"], 
-            c=LDA_df_3d[dep_var], 
-            cmap=cmap,
-            alpha=1,
-            edgecolors='w',
-            linewidth=0.8
-        )
-        ax.set_xlabel('LDA-one')
-        ax.set_ylabel('LDA-two')
-        ax.set_zlabel('LDA-three')
-        
-        true_class_names = []
-        for entry in sc.legend_elements()[1]:
-            result = re.search(r"\{([A-Za-z0-9_]+)\}", entry)
-            try:
-                true_class_names.append(classnames[int(result.group(1))])
-            except:
-                pass
-
-        ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1), prop={"size":10}) #, bbox_to_anchor=(1.0125, 1), loc=2
-        
-        plt.tight_layout()
-        plt.title("LDA 3D", fontsize=font_size_title)
-        st.pyplot(fig=plt, dpi=300)
-        # save_image(plt, f"lda_3d", "plt")
-
-        with st.expander("See notes"):
-            st.write(f"""
-            Linear Discriminant Analysis (LDA) can take the high dimensional space of our final {len(xs_final.columns)} feature dataset and 
-            reduce the dimensionality to 3 dimensions. LDA places emphasis on minimising variance for groups and maximising distance between groups 
-            resulting in the visualisations shown. The visualisations effectively shows us that the datapoints can be easily grouped if there is clear separability
-            but also reveals the datapoints the model may have struggled with. 
-            """)
-        
-        fig = px.scatter(LDA_df, x="l1", y="l2", color=dep_var+" label", title="Interactive LDA 2D")
-        fig.update_traces(marker=dict(line=dict(width=0.8,
-                                    color='White')),
-                selector=dict(mode='markers'))
-        st.plotly_chart(fig)
-
-        fig = px.scatter_3d(LDA_df_3d, x="l1", y="l2", z="l3", color=dep_var+" label", title="Interactive LDA 3D")
-        fig.update_traces(marker=dict(line=dict(width=0.8,
-                                    color='White')),
-                selector=dict(mode='markers'))
-        st.plotly_chart(fig)
-
-        with st.expander("See notes"):
-            st.write(f"""
-            Enlarge the interacitve plots for a better experience!
-            """)
-        
-        elapsed_time = time.perf_counter() - t
-    st.success('LDA done! Time elapsed: {}'.format(output_time(elapsed_time)))
-    
-    #umap
-    if umap_op:
-        with st.spinner("Generating UMAP plots..."):
-        
-            #umap 2d
-            umap_result_2d = draw_umap(n, 0.1, 2, df_final) #sparsity??
-            umap_df_2d = pd.DataFrame({"u1": umap_result_2d[:,0], "u2": umap_result_2d[:,1], dep_var: target_col})
-            umap_df_2d = umap_df_2d.join(label_col, rsuffix=" label")
+            df_final = df_combined.drop(columns=[dep_var])
+            target_col = df_combined[dep_var]
+            label_col = df[dep_var]
             
+            #lda
+            X_LDA = LDA(n_components=2).fit_transform(df_final, target_col)
+            X_LDA_3d = LDA(n_components=3).fit_transform(df_final, target_col)
+            
+            LDA_df = pd.DataFrame({"l1": X_LDA[:, 0], "l2": X_LDA[:, 1], dep_var: target_col})
+            LDA_df_3d = pd.DataFrame({"l1": X_LDA_3d[:, 0], "l2": X_LDA_3d[:, 1], "l3": X_LDA_3d[:, 2], dep_var: target_col})
+            
+            LDA_df = LDA_df.join(label_col, rsuffix=" label")
+            LDA_df_3d = LDA_df_3d.join(label_col, rsuffix=" label")
+            
+            #lda 2d
             plt.figure(figsize=(15,15))
             sc = sns.scatterplot(
-                x="u1", y="u2",
+                x="l1", y="l2",
                 hue=dep_var + " label",
                 hue_order=classnames,
                 palette=sns.color_palette("hls", len(classnames)),
-                data=umap_df_2d,
+                data=LDA_df,
                 legend="full",
                 alpha=1
             )
 
             sc.legend_.set_title(None)
 
-            plt.title("UMAP 2D: n_neighbours={}".format(n), fontsize=font_size_title+10)
-            plt.legend(prop={"size":20})
-            #plt.figure(dpi=300)
+            plt.title("LDA 2D", fontsize=font_size_title)
             st.pyplot(fig=plt, dpi=300)
-            # save_image(plt, f"umap_2d", "plt")
+            # save_image(plt, f"lda_2d", "plt")
 
-            #umap 3d
-            umap_result = draw_umap(n, 0.1, 3, df_final)
-            umap_df = pd.DataFrame({"u1": umap_result[:,0], "u2": umap_result[:,1], "u3": umap_result[:,2], dep_var: target_col})
-            umap_df = umap_df.join(label_col, rsuffix=" label")
-            
+            #lda 3d
+            cmap = ListedColormap(sns.color_palette("hls", len(classnames)).as_hex())
+
             ax = plt.figure(figsize=(15,15)).gca(projection='3d')
+
             sc = ax.scatter(
-                xs=umap_df["u1"], 
-                ys=umap_df["u2"], 
-                zs=umap_df["u3"], 
-                c=umap_df[dep_var], 
+                xs=LDA_df_3d["l1"], 
+                ys=LDA_df_3d["l2"], 
+                zs=LDA_df_3d["l3"], 
+                c=LDA_df_3d[dep_var], 
                 cmap=cmap,
                 alpha=1,
                 edgecolors='w',
                 linewidth=0.8
             )
-            ax.set_xlabel('umap-one')
-            ax.set_ylabel('umap-two')
-            ax.set_zlabel('umap-three')
-
+            ax.set_xlabel('LDA-one')
+            ax.set_ylabel('LDA-two')
+            ax.set_zlabel('LDA-three')
+            
             true_class_names = []
             for entry in sc.legend_elements()[1]:
                 result = re.search(r"\{([A-Za-z0-9_]+)\}", entry)
@@ -714,39 +637,132 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                 except:
                     pass
 
-            ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1)) #, bbox_to_anchor=(1.0125, 1), loc=2
-
+            ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1), prop={"size":10}) #, bbox_to_anchor=(1.0125, 1), loc=2
+            
             plt.tight_layout()
-            plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
-
+            plt.title("LDA 3D", fontsize=font_size_title)
             st.pyplot(fig=plt, dpi=300)
-            # save_image(plt, f"umap_3d", "plt")
+            # save_image(plt, f"lda_3d", "plt")
 
             with st.expander("See notes"):
                 st.write(f"""
-                UMAP's capability is to group unlabelled data based on similarity, done on the reduced dataset these are the resulting visualisations. 
-                If the dataset is inherently divisible based on the final features, you should be able to see clear separation in the visualisations. 
+                Linear Discriminant Analysis (LDA) can take the high dimensional space of our final {len(xs_final.columns)} feature dataset and 
+                reduce the dimensionality to 3 dimensions. LDA places emphasis on minimising variance for groups and maximising distance between groups 
+                resulting in the visualisations shown. The visualisations effectively shows us that the datapoints can be easily grouped if there is clear separability
+                but also reveals the datapoints the model may have struggled with. 
                 """)
-
-            fig = px.scatter(umap_df_2d, x="u1", y="u2", color=dep_var+" label", title="Interactive UMAP 2D")
+            
+            fig = px.scatter(LDA_df, x="l1", y="l2", color=dep_var+" label", title="Interactive LDA 2D")
             fig.update_traces(marker=dict(line=dict(width=0.8,
                                         color='White')),
-                selector=dict(mode='markers'))
+                    selector=dict(mode='markers'))
             st.plotly_chart(fig)
 
-            fig = px.scatter_3d(umap_df, x="u1", y="u2", z="u3", color=dep_var+" label", title="Interactive UMAP 3D")
+            fig = px.scatter_3d(LDA_df_3d, x="l1", y="l2", z="l3", color=dep_var+" label", title="Interactive LDA 3D")
             fig.update_traces(marker=dict(line=dict(width=0.8,
                                         color='White')),
-                selector=dict(mode='markers'))
+                    selector=dict(mode='markers'))
             st.plotly_chart(fig)
 
             with st.expander("See notes"):
                 st.write(f"""
                 Enlarge the interacitve plots for a better experience!
                 """)
-
+            
             elapsed_time = time.perf_counter() - t
-        st.success('UMAP done! Time elapsed: {}'.format(output_time(elapsed_time)))
+        st.success('LDA done! Time elapsed: {}'.format(output_time(elapsed_time)))
+        
+        #umap
+        if umap_op:
+            with st.spinner("Generating UMAP plots..."):
+            
+                #umap 2d
+                umap_result_2d = draw_umap(n, 0.1, 2, df_final) #sparsity??
+                umap_df_2d = pd.DataFrame({"u1": umap_result_2d[:,0], "u2": umap_result_2d[:,1], dep_var: target_col})
+                umap_df_2d = umap_df_2d.join(label_col, rsuffix=" label")
+                
+                plt.figure(figsize=(15,15))
+                sc = sns.scatterplot(
+                    x="u1", y="u2",
+                    hue=dep_var + " label",
+                    hue_order=classnames,
+                    palette=sns.color_palette("hls", len(classnames)),
+                    data=umap_df_2d,
+                    legend="full",
+                    alpha=1
+                )
+
+                sc.legend_.set_title(None)
+
+                plt.title("UMAP 2D: n_neighbours={}".format(n), fontsize=font_size_title+10)
+                plt.legend(prop={"size":20})
+                #plt.figure(dpi=300)
+                st.pyplot(fig=plt, dpi=300)
+                # save_image(plt, f"umap_2d", "plt")
+
+                #umap 3d
+                umap_result = draw_umap(n, 0.1, 3, df_final)
+                umap_df = pd.DataFrame({"u1": umap_result[:,0], "u2": umap_result[:,1], "u3": umap_result[:,2], dep_var: target_col})
+                umap_df = umap_df.join(label_col, rsuffix=" label")
+                
+                ax = plt.figure(figsize=(15,15)).gca(projection='3d')
+                sc = ax.scatter(
+                    xs=umap_df["u1"], 
+                    ys=umap_df["u2"], 
+                    zs=umap_df["u3"], 
+                    c=umap_df[dep_var], 
+                    cmap=cmap,
+                    alpha=1,
+                    edgecolors='w',
+                    linewidth=0.8
+                )
+                ax.set_xlabel('umap-one')
+                ax.set_ylabel('umap-two')
+                ax.set_zlabel('umap-three')
+
+                true_class_names = []
+                for entry in sc.legend_elements()[1]:
+                    result = re.search(r"\{([A-Za-z0-9_]+)\}", entry)
+                    try:
+                        true_class_names.append(classnames[int(result.group(1))])
+                    except:
+                        pass
+
+                ax.legend(handles=sc.legend_elements(alpha=1)[0], labels=true_class_names, loc='upper left', bbox_to_anchor=(1.05, 1)) #, bbox_to_anchor=(1.0125, 1), loc=2
+
+                plt.tight_layout()
+                plt.title("UMAP 3D: n_neighbours={}".format(n), fontsize=font_size_title)
+
+                st.pyplot(fig=plt, dpi=300)
+                # save_image(plt, f"umap_3d", "plt")
+
+                with st.expander("See notes"):
+                    st.write(f"""
+                    UMAP's capability is to group unlabelled data based on similarity, done on the reduced dataset these are the resulting visualisations. 
+                    If the dataset is inherently divisible based on the final features, you should be able to see clear separation in the visualisations. 
+                    """)
+
+                fig = px.scatter(umap_df_2d, x="u1", y="u2", color=dep_var+" label", title="Interactive UMAP 2D")
+                fig.update_traces(marker=dict(line=dict(width=0.8,
+                                            color='White')),
+                    selector=dict(mode='markers'))
+                st.plotly_chart(fig)
+
+                fig = px.scatter_3d(umap_df, x="u1", y="u2", z="u3", color=dep_var+" label", title="Interactive UMAP 3D")
+                fig.update_traces(marker=dict(line=dict(width=0.8,
+                                            color='White')),
+                    selector=dict(mode='markers'))
+                st.plotly_chart(fig)
+
+                with st.expander("See notes"):
+                    st.write(f"""
+                    Enlarge the interacitve plots for a better experience!
+                    """)
+
+                elapsed_time = time.perf_counter() - t
+            st.success('UMAP done! Time elapsed: {}'.format(output_time(elapsed_time)))
+        else:
+            pass
     else:
         pass
     

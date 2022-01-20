@@ -22,8 +22,7 @@ st.write("""
 
 with st.expander("See explanation"):
     st.write("""
-    Machine learning is an effective tool to classify but also infer feature (an individual measurable property of the dataset) importance. 
-    Knowledge of feature importance leads to reduced data size and a clearer picture of what features are inherent to and defining of specific classifications.
+    Machine learning is an effective tool to classify data but also to infer feature importance, which in turn can be used for data reduction as well as for understanding specific classifications. 
 
     Recent studies have shown that structured data can be best modeled by ensembles of decision trees such as random forest or gradient boosting machines. 
     Random forests train faster than gradient boosting machines and requires significantly less hyperparameter tuning. 
@@ -36,7 +35,7 @@ with st.expander("See explanation"):
     The most important features have the highest values. If the most important features are known the dataset can be reduced to these features and maintain levels accuracy, recall and precision that remain close to the initial model's levels which is trained on the entire dataset. 
 
     To do this new models must be continuously trained on a growing number of important features until these metrics are within acceptable bounds of the metric standards of the initial model. 
-    This is where random forest's fast training time is of particular use and other machine learning models become obsolete. 
+    This is where random forest's fast training time is of particular use and other machine learning models become impractical. 
 
     Once an optimum amount of important features are established, any potential redundancy of these features can be found by determining similarity. 
     This is done by calculating the Spearman's Rank-Order Correlation for the features. All but one of the closely related features can be removed with minimal impact to accuracy, thus, reducing the dataset size furthermore.
@@ -76,9 +75,11 @@ bound = st.sidebar.slider("Bound (10^-4)", min_value=1, max_value=10, value=5, s
 umap_op = st.sidebar.checkbox("UMAP", True)
 if umap_op:
     n = st.sidebar.slider("n_neighbours (UMAP)", min_value=0, max_value=1000, value=250)
+else:
+    n = 250
 split = st.sidebar.selectbox("Train-Test split", ("stratify", "random", "index"))
 
-file = st.file_uploader("", type=['csv'])
+file = st.file_uploader("", type=['csv', 'txt', 'tsv'])
 
 if not file:
     st.write("**Upload file to get started**")
