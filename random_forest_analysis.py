@@ -52,14 +52,16 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                            ).sort_values('imp', ascending=False)
     
     #Finding Minimum Required Features Loop for Data Reduction Function
-    def data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold):
+    def data_reduction_loop(imp_offset, fi, xs, y, valid_xs, fi_drop_zeroes):
         """Finding Minimum Required Features Loop for Data Reduction Function
         in: value used to adjust important feature search (float), feature importance dataframetraining dataframe, training classification column, validation dataframe
         out: new offset value (float), reduced training set, validation training set, rf important model, predictions for validation set, features to keep (list)
         """
 
-        imp_offset += threshold/100
-        to_keep = fi[fi.imp > (threshold - imp_offset)].features
+        imp_offset += 0.01
+        
+        #to_keep = fi[fi.imp > (threshold - imp_offset)].features
+        to_keep = fi[fi.imp > fi_drop_zeroes["imp"].quantile(.99 - imp_offset)].features
         xs_imp = xs[to_keep]
         valid_xs_imp = valid_xs[to_keep]
 
@@ -79,8 +81,8 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         #print(fi["imp"].max())
         fi_drop_zeroes = fi.loc[fi['imp'] != 0]
         
-        threshold = fi_drop_zeroes["imp"].quantile(.99)#0.005 #threshold = max(feature score)
-        to_keep = fi[fi.imp>threshold].features
+        threshold = .99#0.005 #threshold = max(feature score)
+        to_keep = fi[fi.imp>fi_drop_zeroes["imp"].quantile(.99)].features
 
         xs_imp = xs[to_keep]
         valid_xs_imp = valid_xs[to_keep]
@@ -99,14 +101,14 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
                     m_imp = rf(xs_imp, y, len(xs_imp))
                     break
                 else:
-                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold)
+                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, fi_drop_zeroes)
         else:
             while (precision_score(valid_y, preds_full, average='macro') - precision_score(valid_y, preds, average='macro')) > bound or (recall_score(valid_y, preds_full, average='macro') - recall_score(valid_y, preds, average='macro')) > bound or (m.score(valid_xs, valid_y) - m_imp.score(valid_xs_imp, valid_y)) > bound:
                 if threshold - imp_offset == 0:
                     m_imp = rf(xs_imp, y, len(xs_imp))
                     break
                 else:
-                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, threshold)
+                    imp_offset, xs_imp, valid_xs_imp, m_imp, preds, to_keep = data_reduction_loop(imp_offset, fi, xs, y, valid_xs, fi_drop_zeroes)
 
         return m_imp, xs_imp, valid_xs_imp, to_keep 
     
