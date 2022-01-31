@@ -121,6 +121,9 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         rightmargin=0.5 #inches
         categorysize=0.5 #inches
         figwidth = leftmargin + rightmargin + n*categorysize
+
+        if figwidth < 0:
+            figwidth = 15
         
         return figwidth
 
@@ -140,47 +143,50 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         in: dataframe, width (float), feature importance dataframe
         out: features to drop (list)
         """
-        corr = np.round(scipy.stats.spearmanr(df).correlation, 4)
-        corr_condensed = hc.distance.squareform(1-corr)
-        z = hc.linkage(corr_condensed, method='average')
-        fig = plt.figure(figsize=(figwidth, figwidth))
-        hc.dendrogram(z, labels=df.columns, orientation='left', leaf_font_size=font_size)
+        if len(df) == 1: 
+            pass
+        else:
+            corr = np.round(scipy.stats.spearmanr(df).correlation, 4)
+            corr_condensed = hc.distance.squareform(1-corr)
+            z = hc.linkage(corr_condensed, method='average')
+            fig = plt.figure(figsize=(figwidth, figwidth))
+            hc.dendrogram(z, labels=df.columns, orientation='left', leaf_font_size=font_size)
 
-        fl = fcluster(z, t=0.01, criterion='distance')
+            fl = fcluster(z, t=0.01, criterion='distance')
 
-        col_list = list(df.columns)
-        clusters = []
-        for cluster_ind in fl:
-            cluster = np.where(fl == cluster_ind)[0].tolist()
-            names = []
-            for ind in cluster:
-                names.append(col_list[ind])
+            col_list = list(df.columns)
+            clusters = []
+            for cluster_ind in fl:
+                cluster = np.where(fl == cluster_ind)[0].tolist()
+                names = []
+                for ind in cluster:
+                    names.append(col_list[ind])
 
-            if len(names) > 1:
-                clusters.append(names)
+                if len(names) > 1:
+                    clusters.append(names)
 
-        unique_data = list(map(list,set(map(tuple,clusters))))
+            unique_data = list(map(list,set(map(tuple,clusters))))
 
-        #drop lowest importances
-        to_drop = []
-        for cluster in unique_data:
-            importances = {}
-            for feature in cluster:
-                importances[feature] = feature_importance[feature_importance["features"] == feature]["imp"].values[0]
-            kept_feature = max(importances)
-                
-            for feature in importances:
-                if feature != kept_feature:
-                    to_drop.append(feature)
+            #drop lowest importances
+            to_drop = []
+            for cluster in unique_data:
+                importances = {}
+                for feature in cluster:
+                    importances[feature] = feature_importance[feature_importance["features"] == feature]["imp"].values[0]
+                kept_feature = max(importances)
+                    
+                for feature in importances:
+                    if feature != kept_feature:
+                        to_drop.append(feature)
 
-        plt.title("Similarity Dendrogram", fontsize=font_size_title-4) 
-        try:   
-            st.pyplot(fig)
-            # save_image(plt, "dendrogram", "plt")
-        except:
-            st.error("Generation of dendrogram encountered errors")
+            plt.title("Similarity Dendrogram", fontsize=font_size_title-4) 
+            try:   
+                st.pyplot(fig)
+                # save_image(plt, "dendrogram", "plt")
+            except:
+                st.error("Generation of dendrogram encountered errors")
 
-        return to_drop
+            return to_drop
     
     def draw_umap(n_neighbors, min_dist, n_components, data, metric='euclidean'):
         """UMAP mapping 
@@ -512,12 +518,14 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     
     with st.spinner("Generating heatmap and histograms of top features..."):
         
+        # if len(xs_final.columns) > 20:
+        #     df_train = xs_final[:20].join(y, how="left")
+        # else:
         df_train = xs_final.join(y, how="left")
         #heatmap
         col1, col2 = st.columns(2)
         for class_, i in zip(classnames, iter(range(len(classnames)))):
             df_train_class_select = df_train[df_train[dep_var] == classnames.index(class_)]
-
             c_mat = df_train_class_select.drop(columns=[dep_var]).corr()
             c_mat_df = pd.DataFrame(c_mat, index=xs_final.columns, columns=xs_final.columns).fillna(0)
             fig = px.imshow(c_mat_df, title=f"Final Features Heatmap ({class_})", zmin=-1, zmax=1)
@@ -546,7 +554,6 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
         col1, col2 = st.columns(2)
         for class_, i in zip(classnames, iter(range(len(classnames)))):
             df_train_class_select = df_train[df_train[dep_var] == classnames.index(class_)]
-
             df_train_class_select.drop(columns=[dep_var]).hist(figsize = (figwidth, figwidth))
 
             plt.suptitle(f"Histogram for each Final Feature ({class_})", y=1.02, fontsize=font_size_title)
