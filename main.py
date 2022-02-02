@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
 from random_forest_analysis import random_forest_analysis
-# import base64
+import base64
 
 # def create_download_link(val, filename):
 #     b64 = base64.b64encode(val)  # val looks like b'...'
 #     return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download PDF summary report</a>'
+
+@st.cache
+def convert_df(df):
+   return df.to_csv(index=False).encode('utf-8')
 
 st.set_page_config(
     page_title="Random Forest Analysis",
@@ -14,6 +18,9 @@ st.set_page_config(
     initial_sidebar_state="expanded")
 
 ##streamlit start##
+
+test_df = pd.read_csv("reaction_abundance_body_site.csv")
+test_csv = convert_df(test_df)
 
 st.write("""
 # Random Forest Analysis
@@ -83,6 +90,22 @@ file = st.file_uploader("", type=['csv', 'txt', 'tsv'])
 
 if not file:
     st.write("**Upload file to get started**")
+
+    with st.expander("Download test file"):
+            st.write(f"""
+            The download buttion below downloads a csv file consisting of reaction abundance data for four body sites: gut, nasal, skin and vagina. The file will provide a template for the tabular structure the data should be in. 
+            Once uploaded you will be prompted to enter \"Body site\" (without quotations). This is the column in the data on which classification will take place. The dataset contains 8306 features, these features are reactions for which the abundance
+            is known and the associated body site. Once uploaded this app will narrow down the selection to the minimum amount of features to effectively classify the data. 
+            """)
+
+            st.download_button(
+            "Download test file",
+            test_csv,
+            "reaction_abundance_body_site.csv",
+            "text/csv",
+            key='download-csv-test',
+            help='If the name of the file is changed you won\'t be prompted to enter \"Body site\" (without quotations)'
+            ) 
 else:
     # if len(file) > 1:
     #     st.warning(f"Maximum number of files reached. Only the first will be processed.")
@@ -90,7 +113,10 @@ else:
     dep_var = st.text_input("Input dependent variable")
 
     if not dep_var:
-        st.write("**Enter dependent variable to move on**")
+        if file.name == "reaction_abundance_body_site.csv":
+            st.write("**Enter \"Body site\" (without quotations) to move on**")
+        else:
+            st.write("**Enter dependent variable to move on**")
     else:
         if split == "index":
             idx = st.text_input("Please put in list of index values")
@@ -108,6 +134,16 @@ else:
             features_df["Features"] = kept_features
             st.header("Final features")
             st.table(features_df)
+
+            csv = convert_df(features_df)
+
+            st.download_button(
+            "Download CSV",
+            csv,
+            "features.csv",
+            "text/csv",
+            key='download-csv'
+            ) 
 
             # html = create_download_link(pdf.output(dest="S").encode("latin-1"), "summary_report")
 
