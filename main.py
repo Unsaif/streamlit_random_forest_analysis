@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from random_forest_analysis import random_forest_analysis
-import base64
+# import base64
 
 # def create_download_link(val, filename):
 #     b64 = base64.b64encode(val)  # val looks like b'...'
