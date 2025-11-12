@@ -23,7 +23,7 @@ test_df = pd.read_csv("reaction_abundance_body_site.csv")
 test_csv = convert_df(test_df)
 
 st.write("""
-# Random Forest Analysis
+# FastForest
 ## *Data analysis and reduction through random forests*
 """)
 
