@@ -2,5 +2,6 @@
 images
 venv38
 __pycache__
+streamlit.log
 # images/*
 # !images/.gitkeep
