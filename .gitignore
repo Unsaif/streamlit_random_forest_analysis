@@ -1,4 +1,6 @@
 .venv_streamlit
 images
+venv38
+__pycache__
 # images/*
 # !images/.gitkeep

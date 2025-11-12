@@ -12,7 +12,7 @@ def convert_df(df):
    return df.to_csv(index=False).encode('utf-8')
 
 st.set_page_config(
-    page_title="Random Forest Analysis",
+    page_title="FastForest",
     page_icon="🧊",
     #layout="wide",
     initial_sidebar_state="expanded")
