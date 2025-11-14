@@ -1,5 +1,7 @@
 # FastForest
 
+Check out the webapphere here: [FastForest](https://fastforest.vmh.life)
+
 FastForest is a Streamlit application that helps you explore high-dimensional tabular datasets with a focus on feature reduction using random forests. It trains a baseline model, identifies the most informative features, removes redundant ones, and visualizes the resulting latent space with LDA and UMAP. The app ships with an example metabolomics dataset (`reaction_abundance_body_site.csv`) so you can see the full workflow end-to-end.
 
 ## Highlights
