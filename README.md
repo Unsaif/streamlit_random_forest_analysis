@@ -8,9 +8,9 @@ FastForest is a Streamlit application that helps you explore high-dimensional ta
 
 - **Automated feature pruning** – trains iterative random forest models until accuracy (and optionally precision/recall) remain within a configurable bound of the baseline run.
 - **Redundancy detection** – drops correlated features via Spearman clustering to further shrink the feature set.
-- **Rich visual diagnostics** – confusion matrices, feature-importance histograms, LDA 2D/3D plots, and UMAP embeddings help you understand class separability.
+- **Visual diagnostics** – confusion matrices, feature-importance histograms, LDA 2D/3D plots, and UMAP embeddings help you understand class separability.
 - **Flexible data splitting** – choose stratified, random, or index-based train/validation splits directly from the sidebar.
-- **One-click exports** – download the curated feature list or the sample dataset for reference.
+- **Exports** – download the curated feature list or the sample dataset for reference.
 
 ## Repository Layout
 
