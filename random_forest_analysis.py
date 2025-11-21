@@ -25,6 +25,7 @@ from scipy.cluster import hierarchy as hc
 from scipy.cluster.hierarchy import fcluster
 import seaborn as sns
 import scipy
+import re
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
