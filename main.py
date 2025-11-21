@@ -19,8 +19,15 @@ st.set_page_config(
 
 ##streamlit start##
 
-test_df = pd.read_csv("reaction_abundance_body_site.csv")
-test_csv = convert_df(test_df)
+# test_df = pd.read_csv("reaction_abundance_body_site.csv")
+# test_csv = convert_df(test_df)
+
+@st.cache_data
+def get_test_file_bytes():
+    with open("reaction_abundance_body_site.csv", "rb") as f:
+        return f.read()
+
+test_csv = get_test_file_bytes()
 
 st.write("""
 # FastForest

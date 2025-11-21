@@ -1,39 +1,40 @@
-import streamlit as st
-import time
-import datetime
-import pandas as pd 
-from fastai.tabular.all import *
-from sklearn.ensemble import RandomForestClassifier
-#from sklearn.tree import DecisionTreeClassifier
-#from dtreeviz.trees import *
-import streamlit.components.v1 as components
-from sklearn.metrics import ConfusionMatrixDisplay
-from sklearn.metrics import precision_score, recall_score, accuracy_score
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-from scipy.cluster import hierarchy as hc
-from scipy.cluster.hierarchy import fcluster
-import seaborn as sns
 
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-
-import umap.umap_ as umap
-
-import plotly.express as px
-
-import warnings
-warnings.filterwarnings('ignore')
-
-from PIL import Image 
-
-Image.MAX_IMAGE_PIXELS = 1000000000
-
-import os
-
-# from fpdf import FPDF
-pd.set_option('mode.chained_assignment', None)
 
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
+    import streamlit as st
+    import time
+    import datetime
+    import pandas as pd 
+    from fastai.tabular.all import *
+    from sklearn.ensemble import RandomForestClassifier
+    #from sklearn.tree import DecisionTreeClassifier
+    #from dtreeviz.trees import *
+    import streamlit.components.v1 as components
+    from sklearn.metrics import ConfusionMatrixDisplay
+    from sklearn.metrics import precision_score, recall_score, accuracy_score
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
+    from scipy.cluster import hierarchy as hc
+    from scipy.cluster.hierarchy import fcluster
+    import seaborn as sns
+
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+
+    import umap.umap_ as umap
+
+    import plotly.express as px
+
+    import warnings
+    warnings.filterwarnings('ignore')
+
+    from PIL import Image 
+
+    Image.MAX_IMAGE_PIXELS = 1000000000
+
+    import os
+
+    # from fpdf import FPDF
+    pd.set_option('mode.chained_assignment', None)
     
     """Random Forest Data Exploration
     in: uploaded file, classificaiton column name
