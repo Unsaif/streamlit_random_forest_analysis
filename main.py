@@ -22,7 +22,7 @@ st.set_page_config(
 # test_df = pd.read_csv("reaction_abundance_body_site.csv")
 # test_csv = convert_df(test_df)
 
-@st.cache_data
+@st.cache
 def get_test_file_bytes():
     with open("reaction_abundance_body_site.csv", "rb") as f:
         return f.read()

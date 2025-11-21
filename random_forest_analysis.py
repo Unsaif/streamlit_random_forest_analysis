@@ -1,20 +1,19 @@
-from fastai.tabular.all import (
-    cont_cat_split,
-    TabularPandas,
-    FillMissing,
-    Normalize,
-    Categorify,
-    TrainTestSplitter,
-    RandomSplitter,
-    IndexSplitter,
-    range_of,
-)
-
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     import streamlit as st
     import time
     import datetime
     import pandas as pd 
+    from fastai.tabular.all import (
+        cont_cat_split,
+        TabularPandas,
+        FillMissing,
+        Normalize,
+        Categorify,
+        TrainTestSplitter,
+        RandomSplitter,
+        IndexSplitter,
+        range_of,
+    )
     from sklearn.ensemble import RandomForestClassifier
     #from sklearn.tree import DecisionTreeClassifier
     #from dtreeviz.trees import *
