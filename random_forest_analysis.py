@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-import datetime
+from datetime import datetime
 import pandas as pd 
 from fastai.tabular.all import (
     cont_cat_split,
