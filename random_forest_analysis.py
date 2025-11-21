@@ -1,11 +1,20 @@
-
+from fastai.tabular.all import (
+    cont_cat_split,
+    TabularPandas,
+    FillMissing,
+    Normalize,
+    Categorify,
+    TrainTestSplitter,
+    RandomSplitter,
+    IndexSplitter,
+    range_of,
+)
 
 def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0005, umap_op=True, n=250, split="stratify", index_col=None):
     import streamlit as st
     import time
     import datetime
     import pandas as pd 
-    from fastai.tabular.all import *
     from sklearn.ensemble import RandomForestClassifier
     #from sklearn.tree import DecisionTreeClassifier
     #from dtreeviz.trees import *
@@ -35,7 +44,7 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
     # from fpdf import FPDF
     pd.set_option('mode.chained_assignment', None)
-    
+
     """Random Forest Data Exploration
     in: uploaded file, classificaiton column name
     out: the deemed most important features where redundant features have been removed and pdf summary report
