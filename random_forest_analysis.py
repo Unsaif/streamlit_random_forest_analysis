@@ -339,11 +339,11 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
     classnames = list(df[dep_var].unique())
     classnames.sort()
     
-    now = datetime.now().strftime("%H:%M:%S")
+    current_time = datetime.now().strftime("%H:%M:%S")
 
     st.metric("Shape of dataset", f"{df.shape[0]} rows, {df.shape[1] - 1} features")
     st.metric("Number of classes", len(classnames))
-    st.metric("Start time", now)
+    st.metric("Start time", current_time)
     
     t = time.perf_counter() #total time recorded
     
@@ -799,9 +799,9 @@ def random_forest_analysis(file, dep_var, reduction_method="accuracy", bound=0.0
 
     elapsed_time = time.perf_counter() - t
 
-    now = datetime.now().strftime("%H:%M:%S")
+    current_time = datetime.now().strftime("%H:%M:%S")
 
-    st.metric("End time", now)
+    st.metric("End time", current_time)
 
     st.success('Random forest analysis done! Time elapsed: {}'.format(output_time(elapsed_time)))
 
