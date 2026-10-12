@@ -1,0 +1,114 @@
+# FastForest benchmark configuration (PUBLICATION_PLAN.md §6).
+# Run from the repository root:  python benchmarks/run_benchmark.py --config benchmarks/config.yaml
+# Paths are relative to the repository root.
+
+output_dir: results
+prepared_dir: benchmarks/data/prepared
+
+seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+split: { val_size: 0.2, test_size: 0.2 }
+
+# Datasets with more rows than this are stratified-subsampled (seed 0, shared by every method and
+# seed) for the method comparison; FastForest alone also runs on the full rows for the scalability
+# table when the dataset sets `scalability: true`.
+comparison_max_rows: 20000
+min_class_size: 10          # classes with fewer labelled rows are dropped (also after subsampling)
+n_jobs: -1
+timeout_hours: 12           # per (dataset, method, seed) run
+
+# Hyper-parameters of the forest used by FastForest's stages and by the final evaluation of every method (S2).
+final_model: { n_estimators: 100, max_features: 0.5, min_samples_leaf: 5 }
+
+fastforest:
+  bound: 0.0005
+  criterion: accuracy
+  cluster_threshold: 0.01
+  enforce_bound: true
+
+# Method order matters: `random` needs the fastforest_mdi result of the same dataset and seed.
+methods:
+  fastforest_mdi:  { importance: mdi }
+  fastforest_perm: { importance: permutation, n_repeats: 5 }
+  boruta:          { max_iter: 100, perc: 100, alpha: 0.05 }
+  rfecv:           { step: 0.1, cv: 5 }
+  perm_threshold:  { n_repeats: 5 }
+  l1_logistic:     { cv: 5, Cs: 8, max_iter: 500, rule: 1se }   # rule: 1se | cv
+  full:            {}
+  random:          {}
+
+datasets:
+  body_site:
+    name: "Reaction abundance, body site"
+    source: "APOLLO (bundled with FastForest)"
+    kind: csv
+    path: reaction_abundance_body_site.csv
+    target: "Body site"
+    feature_type: "continuous (reaction abundance)"
+
+  rp_combined_phylum:
+    name: "Reaction presence, combined, phylum"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_combined_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Phylum
+    feature_type: "binary (reaction presence)"
+    scalability: true
+
+  rp_combined_order:
+    name: "Reaction presence, combined, order"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_combined_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Order
+    feature_type: "binary (reaction presence)"
+    scalability: true
+
+  rp_150k_phylum:
+    name: "Reaction presence, sequenced genomes, phylum"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_150k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+    target: Phylum
+    feature_type: "binary (reaction presence)"
+    scalability: true
+
+  rp_150k_order:
+    name: "Reaction presence, sequenced genomes, order"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_150k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+    target: Order
+    feature_type: "binary (reaction presence)"
+    scalability: true
+
+  rp_90k_phylum:
+    name: "Reaction presence, gut MAGs, phylum"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_90k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Phylum
+    feature_type: "binary (reaction presence)"
+    scalability: true
+
+  rp_90k_order:
+    name: "Reaction presence, gut MAGs, order"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_90k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Order
+    feature_type: "binary (reaction presence)"
+    scalability: true

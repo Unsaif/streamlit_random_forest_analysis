@@ -48,8 +48,7 @@ dependencies = [
 
 [project.optional-dependencies]
 app = ["streamlit>=1.32", "pyarrow>=14"]
-# Boruta is added in Phase 3 once its compatibility with current numpy is verified (see docs/NOTES.md).
-bench = ["pyyaml>=6.0", "psutil>=5.9", "pyarrow>=14"]
+bench = ["pyyaml>=6.0", "psutil>=5.9", "pyarrow>=14", "openpyxl>=3.1", "Boruta>=0.4.3"]
 dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.5"]
 
 [project.scripts]
