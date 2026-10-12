@@ -548,21 +548,21 @@ class FastForest:
         )
 
         # Test evaluation (once per model) ---------------------------------------------------
+        stage_models = {
+            "full": (model_full, features_full),
+            "important": (model_important, features_important),
+            "final": (model_final, features_final),
+        }
+        split_data = {"train": (X_train, y_train), "val": (X_val, y_val), "test": (X_test, y_test)}
         predictions = {
-            "full": {"val": pred_val_full, "test": model_full.predict(X_test)},
-            "important": {
-                "val": model_important.predict(X_val[features_important]),
-                "test": model_important.predict(X_test[features_important]),
-            },
-            "final": {
-                "val": model_final.predict(X_val[features_final]),
-                "test": model_final.predict(X_test[features_final]),
-            },
+            stage: {
+                split: model.predict(X_split[feats]) for split, (X_split, _) in split_data.items()
+            }
+            for stage, (model, feats) in stage_models.items()
         }
         metrics = {
             stage: {
-                "val": compute_metrics(y_val, preds["val"]),
-                "test": compute_metrics(y_test, preds["test"]),
+                split: compute_metrics(split_data[split][1], preds[split]) for split in split_data
             }
             for stage, preds in predictions.items()
         }

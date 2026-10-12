@@ -221,8 +221,10 @@ class Preprocessor:
         if unknown:
             raise ValueError(f"unknown output columns requested: {unknown[:5]}")
 
-        indicator_source = dict(
-            zip(self.missing_indicator_columns_, self.columns_with_missing_, strict=True)
+        indicator_source = (
+            {f"{name}_na": name for name in self.columns_with_missing_}
+            if self.add_missing_indicator
+            else {}
         )
         needed = {indicator_source.get(c, c) for c in requested}
         missing = [c for c in self.feature_names_in_ if c in needed and c not in X.columns]
@@ -236,8 +238,9 @@ class Preprocessor:
                 parts[name] = X[indicator_source[name]].isna().to_numpy().astype(np.int64)
             elif name in categorical:
                 values = _as_strings(X[[name]])[name]
-                codes = pd.Categorical(values, categories=self.categories_[name]).codes
-                parts[name] = np.asarray(codes, dtype=np.int64)
+                lookup = {cat: i for i, cat in enumerate(self.categories_[name])}
+                codes = values.map(lookup).fillna(UNKNOWN_CATEGORY_CODE)
+                parts[name] = codes.to_numpy(dtype=np.int64)
             else:
                 parts[name] = _impute(X[name], self.medians_[name])
         return pd.DataFrame(parts, index=X.index, columns=requested)

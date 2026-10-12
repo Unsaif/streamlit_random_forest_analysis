@@ -12,6 +12,7 @@ import json
 import logging
 import platform
 import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -191,7 +192,7 @@ def cmd_reduce(args: argparse.Namespace) -> int:
     out = Path(args.out)
     paths = result.save(out)
     payload = result.to_dict(include_splits=args.include_splits)
-    payload["command"] = " ".join(sys.argv)
+    payload["command"] = args.command_line
     payload["input"] = {"path": str(args.table), "target": args.target, "n_rows": int(len(frame))}
     payload["environment"] = environment_info()
     paths["metrics"].write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -221,7 +222,9 @@ def cmd_reduce(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the ``fastforest`` console script."""
     parser = build_parser()
+    argv = sys.argv[1:] if argv is None else list(argv)
     args = parser.parse_args(argv)
+    args.command_line = "fastforest " + shlex.join(argv)
     return int(args.func(args))
 
 

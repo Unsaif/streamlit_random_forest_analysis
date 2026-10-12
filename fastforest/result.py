@@ -20,7 +20,7 @@ from fastforest.split import Splits
 STAGES = ("full", "important", "final")
 """Model stages: all features (S2), after the threshold search (S4), after redundancy (S6)."""
 
-SPLITS = ("val", "test")
+SPLITS = ("train", "val", "test")
 
 
 def _jsonable(obj: Any) -> Any:
@@ -66,8 +66,9 @@ class FastForestResult:
         ``"full"``: importance of every feature in the full model; ``"important"``: importance
         in the S4 model (used by redundancy removal and bound enforcement).
     metrics : dict
-        ``metrics[stage][split][metric]`` for stage in :data:`STAGES`, split in ``("val",
-        "test")`` and metric in :data:`fastforest.metrics.METRIC_NAMES`.
+        ``metrics[stage][split][metric]`` for stage in :data:`STAGES`, split in
+        ``("train", "val", "test")`` and metric in :data:`fastforest.metrics.METRIC_NAMES`.
+        Only validation metrics drive any decision; test metrics are computed once at the end.
     bound_satisfied : bool
         Whether the S4 model satisfied the bound on the validation split.
     final_bound_satisfied : bool

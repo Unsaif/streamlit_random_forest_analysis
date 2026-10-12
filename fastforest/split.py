@@ -64,7 +64,7 @@ class Splits:
             if p.size == 0:
                 raise ValueError(f"the {name} split is empty")
             if n_samples is not None and (p.min() < 0 or p.max() >= n_samples):
-                raise ValueError(f"{name} indices must lie in [0, {n_samples})")
+                raise ValueError(f"{name} indices out of range: must lie in [0, {n_samples})")
             if len(np.unique(p)) != len(p):
                 raise ValueError(f"the {name} split contains duplicate indices")
         together = np.concatenate(parts)
@@ -144,11 +144,14 @@ def make_splits(
     if not (0 < val_size < 1 and 0 < test_size < 1 and val_size + test_size < 1):
         raise ValueError("val_size and test_size must be in (0, 1) and sum to less than 1")
     stratify = method == "stratified"
+    n_test = max(1, int(round(test_size * n)))
+    n_val = max(1, int(round(val_size * n)))
+    if n_test + n_val >= n:
+        raise ValueError("val_size and test_size leave no rows for training")
     rest, test = _stratified_or_warn(
-        indices, y, test_size=test_size, random_state=random_state, stratify=stratify
+        indices, y, test_size=n_test, random_state=random_state, stratify=stratify
     )
-    val_fraction = val_size / (1.0 - test_size)
     train, val = _stratified_or_warn(
-        rest, y[rest], test_size=val_fraction, random_state=random_state, stratify=stratify
+        rest, y[rest], test_size=n_val, random_state=random_state, stratify=stratify
     )
     return Splits.from_arrays(train, val, test, n_samples=n)

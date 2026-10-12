@@ -82,6 +82,13 @@ ignore = ["B028"]
 [tool.ruff.lint.isort]
 known-first-party = ["fastforest"]
 
+[tool.coverage.run]
+source = ["fastforest"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
@@ -89,4 +96,5 @@ filterwarnings = [
   "ignore::DeprecationWarning:umap",
   "ignore::DeprecationWarning:numba",
   "ignore::DeprecationWarning:pkg_resources",
+  "ignore:Some inputs do not have OOB scores:UserWarning",
 ]

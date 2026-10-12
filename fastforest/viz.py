@@ -385,11 +385,12 @@ def umap_embedding(
 
     ``n_neighbors`` must be at least 2 (bug B9) and is capped at ``n_samples - 1``.
     """
+    if n_neighbors < 2:
+        raise ValueError("UMAP needs n_neighbors >= 2")
+
     import umap  # heavy import (numba); keep it lazy
 
     n = len(X)
-    if n_neighbors < 2:
-        raise ValueError("UMAP needs n_neighbors >= 2")
     n_neighbors = min(int(n_neighbors), max(2, n - 1))
     kwargs = {}
     if random_state is not None:
