@@ -145,7 +145,22 @@ and keeps intermediates small.
 4. ~~Author list.~~ Resolved: Tim Hulshof and Ines Thiele, University of Galway addresses.
 5. **Predicted-flux dataset (655 × 208, 52 classes).** Identified from the manuscript: reference
    16, Hensen T. & Thiele I., "Metabolic modeling links gut microbiota to metabolic markers of
-   Parkinson's disease", Gut Microbes 17(1), 2025. Not on Tim's Mac (searched 2026-10-12); the
-   old app pointed at the GCS bucket `gs://reaction_presence_test/`, whose listing needs Tim to
-   re-authenticate gcloud. Table and class definition to come from Tim Hensen.
+   Parkinson's disease", Gut Microbes 17(1), 2025, PMID 40995781, PMC12477873,
+   doi 10.1080/19490976.2025.2554195. Tim supplied the paper's `Supplementary tables.xlsx`
+   (2026-10-12, in `~/Downloads/`): host-microbiome whole-body models (WBMs) per participant of
+   the Wallen et al. 2022 PD metagenome cohort; maximised blood-compartment fluxes of 116
+   PD-associated metabolites (Table S4, from Luo et al. 2024) regressed on PD diagnosis with
+   age, sex, medication and lifestyle covariates (Table S5: 648 analysed samples, 431 PD). The
+   FastForest table therefore combines predicted blood fluxes (continuous) with those metadata
+   covariates (categorical); the per-sample matrix is **not** in the supplementary workbook and
+   must come from the paper's data deposit or from Tim Hensen, together with what the 52
+   classes are (PD vs control is binary, so the target used in the manuscript is still unknown).
+   Not on Tim's Mac (searched 2026-10-12); the old app pointed at the GCS bucket
+   `gs://reaction_presence_test/`, whose listing needs Tim to re-authenticate gcloud.
+   **Data availability (from the PMC full text):** generated WBMs and raw fluxes on Harvard
+   Dataverse, doi 10.7910/DVN/PUTXL9; cohort metagenomics and metadata (Wallen et al. 2022,
+   490 PD / 234 controls; 654 used after exclusions, 435 PD / 219 controls) on Zenodo record
+   7246185; scripts at github.com/ThieleLab/CodeBase. 116 blood metabolites had maximal flux
+   predictions (93 analysed after dropping microbiome-independent ones), so the 208 features are
+   most likely the 116 fluxes plus the clinical/lifestyle metadata columns.
 6. Confirm interpretation 1 above (fallback `bound_satisfied` semantics).
