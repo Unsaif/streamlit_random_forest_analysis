@@ -73,6 +73,20 @@ M1 with 16 GB will be the constraint, and that is a legitimate finding for a sca
    once, after every choice has been made.
 10. **CLI `--split`** offers `stratified` and `random` only; `index` is available in the library
     and the app, where supplying the row list is practical.
+11. **Train metrics.** The Phase 2 test list asks for metrics on train/val/test, while §3 lists
+    validation and test. Train metrics are now recorded as well (`metrics[stage]["train"]`);
+    only validation metrics ever drive a decision.
+12. **`tests/test_reduce.py` assertion "all informative features retained at bound = 0.01".**
+    On the prescribed `make_classification` dataset this is not a property of the method: its
+    objective is the *smallest* subset within the bound, so with 10 informative and 10
+    redundant (linear-combination) columns it keeps 8–14 signal columns and never a noise
+    column (checked over 12 seeds and three `class_sep` settings; the same holds with
+    `n_redundant=0`, where 4–10 of 10 informative columns are kept). The test therefore
+    asserts what the method guarantees (every selected feature is signal, ≥ 80% of noise
+    dropped, bound satisfied on validation) and the "all retained" intent is tested on a
+    second dataset where each signal feature is necessary (class = arg-max of three
+    Gaussian columns plus noise). Worth a sentence in the paper: FastForest selects a
+    sufficient subset, not every informative feature.
 
 ## Open questions
 

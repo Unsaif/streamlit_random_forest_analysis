@@ -18,7 +18,12 @@ All notable changes to FastForest are documented here. The format follows
   `CITATION.cff`, `CONTRIBUTING.md`, this changelog; Dockerfile on `python:3.11-slim`.
 - Streamlit app rewritten as a thin layer (`app/streamlit_app.py`) that calls the library and
   renders returned figures; adds seed, split-size, importance-method and redundancy-cut inputs.
+- Test suite (`tests/`, 87 tests, 98% line coverage of `fastforest/`): synthetic-data
+  end-to-end checks, regression tests for every bug below, CLI and Streamlit `AppTest` smoke
+  tests. GitHub Actions CI runs ruff and pytest on Python 3.10, 3.11 and 3.12.
 - Three-way split: the app shows validation metrics for every stage and test metrics at the end.
+  Metrics are recorded on train, validation and test for every stage; only validation metrics
+  drive decisions.
 
 ### Behaviour changes (relative to the 2021 `random_forest_analysis.py`)
 All of these follow `PUBLICATION_PLAN.md` §3 and decisions D2–D6.
