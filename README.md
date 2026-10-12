@@ -1,68 +1,134 @@
 # FastForest
 
-Check out the webapp here: [FastForest](https://fastforest.vmh.life)
+[![Web app](https://img.shields.io/badge/web%20app-fastforest.vmh.life-2b7a4b)](https://fastforest.vmh.life)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
-FastForest is a Streamlit application that helps you explore high-dimensional tabular datasets with a focus on feature reduction using random forests. It trains a baseline model, identifies the most informative features, removes redundant ones, and visualizes the resulting latent space with LDA and UMAP. The app ships with an example metabolomics dataset (`reaction_abundance_body_site.csv`) so you can see the full workflow end-to-end.
+**FastForest** reduces a high-dimensional labelled table to the few features a random forest
+needs to classify it, without losing accuracy. It trains a forest on all features, searches over
+importance thresholds for the smallest subset whose validation metrics stay within a bound of the
+full model, removes redundant features by Spearman-correlation clustering, and reports the final
+model on a held-out test split. It ships as a Python library, a command-line tool and a Streamlit
+web app.
 
-## Highlights
+It was built for metabolic-reconstruction data (thousands of reactions per genome) but works on
+any table with one class column.
 
-- **Automated feature pruning** – trains iterative random forest models until accuracy (and optionally precision/recall) remain within a configurable bound of the baseline run.
-- **Redundancy detection** – drops correlated features via Spearman clustering to further shrink the feature set.
-- **Visual diagnostics** – confusion matrices, feature-importance histograms, LDA 2D/3D plots, and UMAP embeddings help you understand class separability.
-- **Flexible data splitting** – choose stratified, random, or index-based train/validation splits directly from the sidebar.
-- **Exports** – download the curated feature list or the sample dataset for reference.
+## Installation
 
-## Repository Layout
+```bash
+pip install git+https://github.com/ThieleLab/streamlit_random_forest_analysis.git
+```
 
-| Path | Description |
+Optional extras: `[app]` for the Streamlit app, `[bench]` for the benchmark scripts, `[dev]`
+for tests and linting. For development:
+
+```bash
+git clone https://github.com/ThieleLab/streamlit_random_forest_analysis.git
+cd streamlit_random_forest_analysis
+pip install -e ".[app,dev]"
+```
+
+Python 3.10 or newer. Installing takes about a minute; there is no deep-learning dependency.
+
+## 30-second example
+
+```python
+from fastforest import FastForest, load_sample
+
+X, y = load_sample()  # 1,000 genomes x 500 reactions, 4 body sites
+ff = FastForest(bound=5e-4, criterion="accuracy", n_estimators=100, random_state=0)
+result = ff.fit(X, y)
+
+result.features_final  # the selected features, most important first
+result.metrics["final"]["test"]  # accuracy, macro precision / recall / F1 on the test split
+result.summary()  # one row per stage and split
+result.to_json("fastforest_result.json")
+```
+
+Figures are plain matplotlib / plotly objects:
+
+```python
+from fastforest import viz
+
+raw, normalised = viz.confusion_matrices(result, stage="final", split="test")
+viz.importance_bar(result.importances["full"]).show()
+viz.dendrogram(result.redundancy).savefig("dendrogram.png")
+viz.lda_scatter(result.X_final, result.y, result.classes).show()
+viz.umap_scatter(result.X_final, result.y, result.classes, random_state=0).show()
+```
+
+## Command line
+
+```bash
+fastforest reduce reaction_abundance_body_site.csv --target "Body site" --out results/demo
+```
+
+writes `features.csv`, `metrics.json` (parameters, metrics, timings, environment),
+`importances.csv`, `clusters.json` and a `figures/` directory. Useful options: `--bound 5e-4`,
+`--method accuracy|all`, `--importance mdi|permutation`, `--n-estimators 100`, `--seed 0`,
+`--no-umap`, `--no-figures`. Run `fastforest reduce --help` for the full list. CSV, TSV and
+Parquet inputs are accepted.
+
+## Web app
+
+```bash
+pip install -e ".[app]"
+streamlit run app/streamlit_app.py
+```
+
+or use the hosted instance at <https://fastforest.vmh.life>. Upload a table (or pick the bundled
+sample), choose the class column, set the bound and seed in the sidebar and press *Run*. The app
+shows validation metrics for every stage, test metrics at the end, confusion matrices, the
+threshold search, the redundancy dendrogram, per-class heatmaps and histograms, LDA and UMAP, and
+lets you download the final feature list.
+
+With Docker:
+
+```bash
+docker compose up --build        # then open http://localhost:8501
+```
+
+## How it works
+
+| Stage | What happens | Default |
+| --- | --- | --- |
+| S0 Preprocess | median imputation, ordinal encoding of categoricals; fitted on the training split only; no scaling | |
+| S1 Split | stratified train / validation / test | 60 / 20 / 20, seeded |
+| S2 Full model | `RandomForestClassifier(max_features=0.5, min_samples_leaf=5)` on all features | 100 trees |
+| S3 Importance | mean decrease in impurity, or permutation importance on the validation split | MDI |
+| S4 Threshold search | keep features above the *q*-quantile of the positive importances for *q* = 0.99, 0.98, …, 0; retrain; stop when validation metrics are within the bound of S2 | bound 5 × 10⁻⁴ on accuracy |
+| S5 Redundancy | Spearman ρ between kept features, average-linkage clustering, cut at 1 − ρ = 0.01; keep the most important member of each cluster | ρ ≥ 0.99 |
+| S6 Final model | retrain; if the bound breaks, re-insert dropped features in importance order until it holds; evaluate once on the test split | enforce on |
+| S7 Figures | confusion matrices, importances, dendrogram, per-class heatmaps and histograms, LDA (2-D for ≥ 3 classes, 3-D for ≥ 4), UMAP | |
+
+Every stochastic step takes `random_state`, so a run is reproducible from its `metrics.json`.
+
+## Repository layout
+
+| Path | Contents |
 | --- | --- |
-| `main.py` | Streamlit UI entrypoint; handles sidebar inputs, file upload, sample data download, and result display. |
-| `random_forest_analysis.py` | Core analysis pipeline: preprocessing via fastai, model training, feature filtering, clustering, LDA/UMAP charts. |
-| `reaction_abundance_body_site.csv` | Example dataset (body-site classification) used when no file is uploaded. |
-| `requirements.txt` | Locked Python dependencies for local installs and the Docker image. |
-| `Dockerfile`, `docker-compose.yml` | Containerized deployment assets exposing the app on port 8501. |
+| `fastforest/` | the library: `preprocess`, `split`, `importance`, `metrics`, `reduce`, `redundancy`, `result`, `viz`, `cli`, `datasets`, bundled sample data |
+| `app/streamlit_app.py` | the Streamlit app (thin; calls the library) |
+| `tests/` | pytest suite |
+| `benchmarks/` | evaluation for the paper |
+| `scripts/` | one-off helpers (e.g. building the sample dataset) |
+| `docs/` | notes and the paper sources |
+| `reaction_abundance_body_site.csv` | the full example dataset (1,957 genomes × 8,306 reactions) |
 
-## Getting Started (Local Python)
+## Citation
 
-Prerequisites:
+If FastForest is useful in your work, please cite it (see `CITATION.cff`). An earlier version of
+the method produced the taxonomic classifier in Heinken, Hulshof *et al.*, *APOLLO: a
+genome-scale metabolic reconstruction resource of 247,092 diverse human microbes spanning
+multiple continents, age groups, and body sites*, Cell Systems 2025,
+<https://doi.org/10.1016/j.cels.2025.101196>.
 
-- Python 3.8+ (matching the version in the Dockerfile)
-- `pip`
-- Recommended: a virtual environment (`python3 -m venv .venv && source .venv/bin/activate`)
+## Contributing and support
 
-```bash
-pip install -r requirements.txt
-streamlit run main.py
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and questions go to the
+[issue tracker](https://github.com/ThieleLab/streamlit_random_forest_analysis/issues).
 
-Streamlit defaults to `http://localhost:8501`. Keep the terminal open to see Streamlit logs.
+## License
 
-## Running with Docker
-
-Build and run the container manually:
-
-Use the provided compose file (auto-rebuilds and adds a health check):
-
-```bash
-docker-compose up --build
-```
-
-Navigate to `http://localhost:8501` once the health check reports `healthy`.
-
-## Using the App
-
-1. **Upload data** – provide a CSV/TSV with one categorical dependent variable column. Alternatively download the sample file from the homepage to see the required schema.
-2. **Set the dependent variable** – enter the column name exactly as it appears (e.g., `Body site` for the sample data).
-3. **Tune sidebar knobs** (defaults usually work):
-   - `Reduction Method`: stop once accuracy matches the baseline, or enforce accuracy/precision/recall simultaneously.
-   - `Bound (10^-4)`: acceptable metric drift (e.g., `5` represents `5 × 10⁻⁴`).
-   - `UMAP`: disable if you want faster results on very large datasets.
-   - `n_neighbours (UMAP)`: controls how much global vs. local structure UMAP preserves.
-   - `Train-Test split`: pick stratified, random, or supply explicit indices.
-4. **Review outputs** – the app walks through baseline metrics, feature-importance plots, reduced-model metrics, redundancy pruning details, LDA/UMAP visualizations, and finally lists the surviving features.
-5. **Export results** – download the final feature list as `features.csv` for downstream modeling.
-
-## Contributing
-
-Issues and pull requests are welcome. 
-
+GPL-3.0-or-later. See [LICENSE](LICENSE).
