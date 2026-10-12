@@ -16,7 +16,16 @@ abstract: >-
 authors:
   - family-names: Hulshof
     given-names: Tim O.
+    email: t.hulshof1@universityofgalway.ie
     affiliation: "School of Medicine and Ryan Institute, University of Galway, Ireland"
+  - family-names: Thiele
+    given-names: Ines
+    email: ines.thiele@universityofgalway.ie
+    affiliation: "School of Medicine and Ryan Institute, University of Galway, Ireland"
+contact:
+  - family-names: Hulshof
+    given-names: Tim O.
+    email: t.hulshof1@universityofgalway.ie
 keywords:
   - random forest
   - feature selection

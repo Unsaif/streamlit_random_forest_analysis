@@ -10,8 +10,11 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-authors = [{ name = "Tim Hulshof", email = "t.hulshof.cbc@gmail.com" }]
-maintainers = [{ name = "Tim Hulshof", email = "t.hulshof.cbc@gmail.com" }]
+authors = [
+  { name = "Tim Hulshof", email = "t.hulshof1@universityofgalway.ie" },
+  { name = "Ines Thiele", email = "ines.thiele@universityofgalway.ie" },
+]
+maintainers = [{ name = "Tim Hulshof", email = "t.hulshof1@universityofgalway.ie" }]
 keywords = [
   "random forest",
   "feature selection",

@@ -31,6 +31,9 @@ received, the interpretations made where the plan was silent, and the questions 
   Taxonomy is the only label shared by both halves: in the combined set Phylum has 19 classes
   (238,502 labelled), Class 37, Order 79, Family 137, Genus 266, Species 620.
 - **52 classes** of the predicted-flux PD dataset: Tim is waiting on a colleague.
+- **Decisions of 2026-10-12 (later):** benchmark targets follow the default below; the bundled
+  CSV is reported as 1,957 rows; package authors are Tim Hulshof and Ines Thiele with their
+  University of Galway addresses, Tim as contact.
 
 ## Benchmark hardware (recommendation, adopted unless Tim objects)
 
@@ -73,17 +76,13 @@ M1 with 16 GB will be the constraint, and that is a legitimate finding for a sca
 
 ## Open questions
 
-1. **Target per lab dataset.** Metadata is now in hand (see above). Which column is the target
-   for each of the three reaction-presence sets? The combined set can only use taxonomy
-   (Phylum, Class, Order, …); the 150k set could also use Body Site, which is extremely
-   imbalanced (144,527 stool vs 63 nasal cavity). Which target(s) did the APOLLO classifier
-   use? Rows with a missing label are dropped per target.
+1. ~~Target per lab dataset.~~ Resolved (default accepted): taxonomy is the target for the
+   reaction-presence sets, Phylum and Order on the combined set. Body Site on the 150k set
+   (144,527 stool vs 63 nasal cavity) is not used unless Tim confirms the APOLLO classifier
+   used it. Rows with a missing label are dropped per target.
 2. **Stable storage** for the lab datasets (the Downloads folder is temporary). Proposal:
    `benchmarks/data/` (git-ignored) plus a `benchmarks/config.yaml` entry per file.
-3. **Bundled CSV size.** `reaction_abundance_body_site.csv` has 1,957 rows × 8,306 features;
-   the plan (§6.1) says 2,446 × 8,306. Which number is correct for Table T1, and does the
-   manuscript's Table 1 refer to a different version of the file?
-4. **Author list** for `CITATION.cff` and `pyproject.toml` (currently Tim only) and the
-   contact e-mail to publish (personal Gmail vs university address).
+3. ~~Bundled CSV size.~~ Resolved: Table T1 reports the file as it is, 1,957 × 8,306.
+4. ~~Author list.~~ Resolved: Tim Hulshof and Ines Thiele, University of Galway addresses.
 5. **52 classes** of the predicted-flux PD dataset (pending from Tim).
 6. Confirm interpretation 1 above (fallback `bound_satisfied` semantics).
