@@ -163,4 +163,14 @@ and keeps intermediates small.
    7246185; scripts at github.com/ThieleLab/CodeBase. 116 blood metabolites had maximal flux
    predictions (93 analysed after dropping microbiome-independent ones), so the 208 features are
    most likely the 116 fluxes plus the clinical/lifestyle metadata columns.
+   **Deposited `metadata.xlsx` (downloaded 2026-10-12 with Tim's permission to
+   `benchmarks/data/pd_flux/`, 724 samples × 57 columns, 490 PD / 234 controls):** no column has
+   52 levels. 47 columns are yes/no (medication, GI symptoms, lifestyle), the five food-frequency
+   questions have 4 levels, `Race` 5, `Bristol_stool_chart` 7, `Age_at_collection` 51, BMI and
+   sequencing depth are continuous. So the 52-class target is not a raw metadata column; the
+   nearest candidate is age (51 distinct values), otherwise it is a derived variable in Tim
+   Hensen's `processed_fluxes.csv` / pruned metadata. Question for Tim Hensen together with the
+   request for that table. The lab pipeline (CodeBase, `Scripts_Hensen_PD_microbiome_WBM_2025/
+   master_script.m`) builds `processed_fluxes.csv` from the 1,450 per-model `.mat` solutions
+   (11.7 GB on Dataverse), which is not practical to redo here.
 6. Confirm interpretation 1 above (fallback `bound_satisfied` semantics).
