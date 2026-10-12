@@ -125,3 +125,44 @@ datasets:
     feature_type: "binary (reaction presence)"
     scalability: true
     seeds: *lab_seeds
+
+  # Genus level matches the taxonomic depth of the manuscript's APOLLO datasets (species, genus,
+  # family, class with 21-99 classes); phylum and order above are coarser. Classes with fewer
+  # than min_class_size rows after the 20,000-row subsample are dropped, which leaves roughly
+  # 80-120 genera. Scalability runs use the phylum/order tables, so these are comparison-only.
+  rp_combined_genus:
+    name: "Reaction presence, combined, genus"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_combined_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Genus
+    feature_type: "binary (reaction presence)"
+    scalability: false
+    seeds: *lab_seeds
+
+  rp_150k_genus:
+    name: "Reaction presence, sequenced genomes, genus"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_150k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/SequencedGenomesInfo.xlsx, key: genome_name }
+    target: Genus
+    feature_type: "binary (reaction presence)"
+    scalability: false
+    seeds: *lab_seeds
+
+  rp_90k_genus:
+    name: "Reaction presence, gut MAGs, genus"
+    source: "APOLLO (Heinken et al. 2025)"
+    kind: lab_parquet
+    path: benchmarks/data/lab/reactionPresence_90k_refined.parquet
+    metadata:
+      - { path: benchmarks/data/lab/mags-gut_qs50_checkm_adaptedToPipeline.xlsx, key: MAG_ID }
+    target: Genus
+    feature_type: "binary (reaction presence)"
+    scalability: false
+    seeds: *lab_seeds

@@ -134,13 +134,18 @@ and keeps intermediates small.
 
 ## Open questions
 
-1. ~~Target per lab dataset.~~ Resolved (default accepted): taxonomy is the target for the
-   reaction-presence sets, Phylum and Order on the combined set. Body Site on the 150k set
-   (144,527 stool vs 63 nasal cavity) is not used unless Tim confirms the APOLLO classifier
-   used it. Rows with a missing label are dropped per target.
+1. ~~Target per lab dataset.~~ Resolved: taxonomy. Phylum and Order on all three
+   reaction-presence tables (default accepted 2026-10-12), plus **Genus** added later the same
+   day after the manuscript's Table 1 showed its APOLLO datasets used species/genus/family/class
+   targets with 21–99 classes (reference list: "reaction abundance / uptake-secretion / internal
+   production for 150k and 90k data on <level> level"). Body Site on the 150k set is not used.
 2. **Stable storage** for the lab datasets (the Downloads folder is temporary). Proposal:
    `benchmarks/data/` (git-ignored) plus a `benchmarks/config.yaml` entry per file.
 3. ~~Bundled CSV size.~~ Resolved: Table T1 reports the file as it is, 1,957 × 8,306.
 4. ~~Author list.~~ Resolved: Tim Hulshof and Ines Thiele, University of Galway addresses.
-5. **52 classes** of the predicted-flux PD dataset (pending from Tim).
+5. **Predicted-flux dataset (655 × 208, 52 classes).** Identified from the manuscript: reference
+   16, Hensen T. & Thiele I., "Metabolic modeling links gut microbiota to metabolic markers of
+   Parkinson's disease", Gut Microbes 17(1), 2025. Not on Tim's Mac (searched 2026-10-12); the
+   old app pointed at the GCS bucket `gs://reaction_presence_test/`, whose listing needs Tim to
+   re-authenticate gcloud. Table and class definition to come from Tim Hensen.
 6. Confirm interpretation 1 above (fallback `bound_satisfied` semantics).

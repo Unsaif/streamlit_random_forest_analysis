@@ -127,10 +127,7 @@ def boruta(X, y, splits, *, seed, params, rf_params, n_jobs, context) -> Selecti
     tentative = np.asarray(selector.support_weak_, dtype=bool)
     return Selection(
         X.columns[support].tolist(),
-        {
-            "n_tentative": int(tentative.sum()),
-            "n_iterations": int(getattr(selector, "_iter", 0) or 0),
-        },
+        {"n_tentative": int(tentative.sum()), "n_rejected": int((~support & ~tentative).sum())},
     )
 
 
