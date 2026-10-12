@@ -105,6 +105,17 @@ and keeps intermediates small.
    Phylum 14 → 11 classes in the comparison subset, Order 59 → 39.
 4. **Peak memory** is the worker process's `ru_maxrss` (one process per dataset × method × seed),
    which includes loading the prepared table.
+5. **Seed allocation.** Timing on the 20,000-row gut-MAG phylum table (seed 0, M2 Pro): FastForest
+   MDI 20 s, no-selection/random < 15 s, RFECV 5.2 min, permutation threshold 5.5 min,
+   FastForest permutation 6.4 min, L1 logistic 21 min, Boruta 15 min (54 min for all eight). The bundled body-site
+   table runs every method with 10 seeds; on the six lab tables L1 logistic and Boruta are capped
+   at 5 seeds (§6.3 allows 5 where runtime demands it) and every other method runs 10. Jobs run
+   seed-major so that every dataset × method has a seed-0 result early.
+6. **FastForest with permutation importance** on the lab data often finds fewer than 100
+   features with positive permutation importance, cannot meet the bound within that set, falls
+   back to all of them and therefore selects exactly the permutation-threshold baseline's set
+   (identical metrics on the gut-MAG phylum table). This is a real property of the method worth
+   stating in the paper rather than a bug.
 
 ## Open questions
 

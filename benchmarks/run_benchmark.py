@@ -203,6 +203,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scalability", action="store_true", help="FastForest on the full rows")
     parser.add_argument("--prepare-only", action="store_true", help="prepare datasets and stop")
     parser.add_argument("--force", action="store_true", help="re-run even if a result exists")
+    parser.add_argument(
+        "--order",
+        choices=("datasets", "seeds"),
+        default="seeds",
+        help="loop seeds inside datasets, or seeds outermost so every dataset gets seed 0 first",
+    )
     parser.add_argument("--worker", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -224,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     counts = {"ok": 0, "error": 0, "timeout": 0, "skipped": 0}
 
+    jobs: list[tuple[int, str, str, Path]] = []  # (seed, dataset, method, data path)
     for name in datasets:
         dcfg = cfg["datasets"][name]
         meta = prepare_dataset(
@@ -243,56 +250,62 @@ def main(argv: list[str] | None = None) -> int:
             data_path = paths["full"]
             run_methods = [m for m in methods if m.startswith("fastforest")]
             run_seeds = seeds[: dcfg.get("scalability_seeds", cfg.get("scalability_seeds", 1))]
+            max_seeds: dict[str, int] = {}
         else:
             data_path = paths["comparison"]
             run_methods = [m for m in methods if m in dcfg.get("methods", methods)]
             run_seeds = [s for s in seeds if s in dcfg.get("seeds", seeds)]
-
+            max_seeds = dcfg.get("max_seeds", {})  # per-method cap for slow methods
         for seed in run_seeds:
             for method in run_methods:
-                out = run_path(output_dir, name, method, seed, scalability=args.scalability)
-                if out.exists() and not args.force:
-                    counts["skipped"] += 1
+                cap = max_seeds.get(method)
+                if cap is not None and run_seeds.index(seed) >= cap:
                     continue
-                reference = None
-                if method == "random":
-                    ref = run_path(
-                        output_dir, name, "fastforest_mdi", seed, scalability=args.scalability
-                    )
-                    if not ref.exists():
-                        log.warning(
-                            "%s seed %d: random control skipped (no fastforest_mdi result)",
-                            name,
-                            seed,
-                        )
-                        continue
-                    reference = json.loads(ref.read_text()).get("n_features")
-                spec = {
-                    "dataset": name,
-                    "method": method,
-                    "seed": seed,
-                    "scalability": args.scalability,
-                    "data": str(data_path),
-                    "out": str(out),
-                    "split": cfg["split"],
-                    "rf_params": cfg["final_model"],
-                    "fastforest": cfg["fastforest"],
-                    "params": cfg["methods"].get(method, {}),
-                    "n_jobs": cfg.get("n_jobs", -1),
-                    "reference_n_features": reference,
-                }
-                spec_path = output_dir / "specs" / f"{name}__{method}__seed{seed}.json"
-                t0 = time.perf_counter()
-                status = launch(spec, spec_path, cfg.get("timeout_hours", 12))
-                counts[status] += 1
-                log.info(
-                    "%s | %-16s | seed %d | %-7s | %.1f s",
-                    name,
-                    method,
-                    seed,
-                    status,
-                    time.perf_counter() - t0,
+                jobs.append((seed, name, method, data_path))
+    if args.order == "seeds":
+        jobs.sort(key=lambda j: (seeds.index(j[0]), datasets.index(j[1]), methods.index(j[2])))
+    log.info("%d runs to consider (%s-major order)", len(jobs), args.order)
+
+    for seed, name, method, data_path in jobs:
+        out = run_path(output_dir, name, method, seed, scalability=args.scalability)
+        if out.exists() and not args.force:
+            counts["skipped"] += 1
+            continue
+        reference = None
+        if method == "random":
+            ref = run_path(output_dir, name, "fastforest_mdi", seed, scalability=args.scalability)
+            if not ref.exists():
+                log.warning(
+                    "%s seed %d: random control skipped (no fastforest_mdi result)", name, seed
                 )
+                continue
+            reference = json.loads(ref.read_text()).get("n_features")
+        spec = {
+            "dataset": name,
+            "method": method,
+            "seed": seed,
+            "scalability": args.scalability,
+            "data": str(data_path),
+            "out": str(out),
+            "split": cfg["split"],
+            "rf_params": cfg["final_model"],
+            "fastforest": cfg["fastforest"],
+            "params": cfg["methods"].get(method, {}),
+            "n_jobs": cfg.get("n_jobs", -1),
+            "reference_n_features": reference,
+        }
+        spec_path = output_dir / "specs" / f"{name}__{method}__seed{seed}.json"
+        t0 = time.perf_counter()
+        status = launch(spec, spec_path, cfg.get("timeout_hours", 12))
+        counts[status] += 1
+        log.info(
+            "%s | %-16s | seed %d | %-7s | %.1f s",
+            name,
+            method,
+            seed,
+            status,
+            time.perf_counter() - t0,
+        )
 
     log.info("done in %.1f min: %s", (time.perf_counter() - started) / 60, counts)
     return 0

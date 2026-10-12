@@ -36,6 +36,11 @@ methods:
   full:            {}
   random:          {}
 
+# Seed caps for the slow methods on the 20,000-row lab tables (plan §6.3 allows 5 seeds where
+# runtime demands it): L1 logistic ~21 min and Boruta ~15-25 min per run, against < 7 min for
+# every other method. The bundled dataset runs every method with all ten seeds.
+lab_max_seeds: &lab_max_seeds { l1_logistic: 5, boruta: 5 }
+
 datasets:
   body_site:
     name: "Reaction abundance, body site"
@@ -56,6 +61,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds
 
   rp_combined_order:
     name: "Reaction presence, combined, order"
@@ -68,6 +74,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds
 
   rp_150k_phylum:
     name: "Reaction presence, sequenced genomes, phylum"
@@ -79,6 +86,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds
 
   rp_150k_order:
     name: "Reaction presence, sequenced genomes, order"
@@ -90,6 +98,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds
 
   rp_90k_phylum:
     name: "Reaction presence, gut MAGs, phylum"
@@ -101,6 +110,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds
 
   rp_90k_order:
     name: "Reaction presence, gut MAGs, order"
@@ -112,3 +122,4 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
+    max_seeds: *lab_max_seeds

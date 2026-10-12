@@ -173,8 +173,9 @@ def l1_logistic(X, y, splits, *, seed, params, rf_params, n_jobs, context) -> Se
         se = scores.std(axis=0, ddof=1) / np.sqrt(scores.shape[0])
         best = int(np.argmax(mean))
         candidates = np.flatnonzero(mean >= mean[best] - se[best])
+        c_cv_best = float(np.atleast_1d(model.C_)[0])
         c_1se = float(model.Cs_[candidates.min()])
-        if params.get("rule", "1se") == "1se" and c_1se != float(np.atleast_1d(model.C_)[0]):
+        if params.get("rule", "1se") == "1se" and c_1se != c_cv_best:
             model = LogisticRegression(
                 C=c_1se,
                 penalty="l1",
@@ -188,8 +189,9 @@ def l1_logistic(X, y, splits, *, seed, params, rf_params, n_jobs, context) -> Se
     return Selection(
         X.columns[nonzero].tolist(),
         {
-            "C_cv_best": float(model.Cs_[best]) if hasattr(model, "Cs_") else None,
-            "C_used": float(model.C if hasattr(model, "C") else np.atleast_1d(model.C_)[0]),
+            "C_cv_best": c_cv_best,
+            "C_1se": c_1se,
+            "C_used": float(getattr(model, "C", c_cv_best)),
             "rule": params.get("rule", "1se"),
             "cv_accuracy_best": float(mean[best]),
             "n_convergence_warnings": int(n_convergence_warnings),
