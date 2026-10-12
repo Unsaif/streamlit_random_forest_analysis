@@ -89,6 +89,17 @@ def test_missing_importance_raises():
         find_redundant(X, pd.Series({"a": 1.0}))
 
 
+def test_spearman_distance_matches_scipy_on_ordinary_data():
+    from scipy.stats import spearmanr
+
+    rng = np.random.default_rng(5)
+    X = pd.DataFrame(rng.normal(size=(120, 6)), columns=list("abcdef"))
+    X["b"] = np.round(X["b"], 1)  # ties exercise average ranking
+    expected = 1.0 - np.asarray(spearmanr(X.to_numpy(), axis=0).statistic)
+    np.fill_diagonal(expected, 0.0)
+    assert np.allclose(spearman_distance(X).to_numpy(), expected)
+
+
 def test_spearman_distance_properties():
     X = correlated_frame()
     d = spearman_distance(X)

@@ -7,14 +7,12 @@ i.e. ``rho >= 0.99``). In every cluster the feature with the highest importance 
 
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
 from scipy.cluster import hierarchy as hc
 from scipy.spatial.distance import squareform
-from scipy.stats import ConstantInputWarning, spearmanr
 
 MIN_FEATURES = 3
 """Below this many features the redundancy step is skipped (bugs B4/B5)."""
@@ -57,24 +55,21 @@ class RedundancyResult:
 def spearman_distance(X: pd.DataFrame) -> pd.DataFrame:
     """Return the pairwise distance ``1 - rho`` between the columns of ``X``.
 
-    NaN correlations (constant columns) are treated as zero correlation, the matrix is
-    symmetrised, distances are clipped to ``[0, 2]`` and the diagonal is set to zero. A perfect
-    negative correlation is distance 2, so anti-correlated features are not merged.
+    Spearman's rho is computed as the Pearson correlation of average ranks, which is its
+    definition and does not depend on the SciPy version (older releases return a scalar NaN
+    from ``spearmanr`` when any column is constant). NaN correlations (constant columns) are
+    treated as zero correlation, the matrix is symmetrised, distances are clipped to ``[0, 2]``
+    and the diagonal is set to zero. A perfect negative correlation is distance 2, so
+    anti-correlated features are not merged.
     """
-    values = X.to_numpy(dtype=np.float64)
-    p = values.shape[1]
+    ranks = X.rank(axis=0, method="average").to_numpy(dtype=np.float64)
+    p = ranks.shape[1]
     if p == 1:
         rho = np.ones((1, 1))
     else:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ConstantInputWarning)
-            stat = spearmanr(values, axis=0).statistic
-        if p == 2:  # scipy returns a scalar for two columns
-            r = float(np.nan_to_num(stat, nan=0.0))
-            rho = np.array([[1.0, r], [r, 1.0]])
-        else:
-            rho = np.asarray(stat, dtype=np.float64)
-    rho = np.nan_to_num(rho, nan=0.0)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            rho = np.corrcoef(ranks, rowvar=False)
+    rho = np.nan_to_num(np.asarray(rho, dtype=np.float64), nan=0.0)
     rho = (rho + rho.T) / 2.0
     dist = np.clip(1.0 - rho, 0.0, 2.0)
     np.fill_diagonal(dist, 0.0)
