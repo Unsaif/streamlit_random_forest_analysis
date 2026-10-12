@@ -1,20 +1,21 @@
-# Use official Python 3.8 slim image
-FROM python:3.8-slim
+FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 
-# Install basic system dependencies (optional but recommended)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-# Copy your project files
-COPY . /app
+# Install the library (and the bundled sample dataset) first so the layer is cached.
+COPY pyproject.toml README.md LICENSE ./
+COPY fastforest ./fastforest
+RUN pip install ".[app]"
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY app ./app
+COPY .streamlit ./.streamlit
 
-# Expose the default Streamlit port
 EXPOSE 8501
+HEALTHCHECK --interval=30s --timeout=10s --retries=5 \
+  CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
-# Command to run your app
-CMD ["streamlit", "run", "main.py", "--server.headless", "true", "--server.port", "8501", "--server.enableCORS", "false"]
+CMD ["streamlit", "run", "app/streamlit_app.py", \
+     "--server.headless", "true", "--server.port", "8501", "--server.address", "0.0.0.0"]
