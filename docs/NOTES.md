@@ -18,8 +18,19 @@ received, the interpretations made where the plan was silent, and the questions 
   `~/Downloads/OneDrive_1_12-10-2026/`): `reactionPresence_combined_refined.parquet`
   (246,134 × 5,129, the main APOLLO dataset), `reactionPresence_90k_refined.parquet`
   (92,369 × 5,374) and `reactionPresence_150k_refined.parquet` (153,765 × 5,844). All values
-  are 0/1 integers; rows are indexed by genome ID; **none contains a label column.**
-- **52 classes** of the predicted-flux PD dataset: Tim will report back.
+  are 0/1 integers; rows are indexed by genome ID; none contains a label column.
+- **Metadata for the Parquet files** (received later on 2026-10-12, in `~/Downloads/`):
+  `SequencedGenomesInfo.xlsx` (161,929 genomes × 50 columns) has a row for every genome of the
+  150k set, keyed by `genome_name`: `Body Site` (6 classes; 144,527 stool, 7,658 oral cavity,
+  837 skin, 538 airways, 142 vagina, 63 nasal cavity), `Age Category`, `Westernized`, `Country`
+  (31), and taxonomy `Phylum` (18) … `Species` (595), taxonomy present for 147,031 of 153,765.
+  `mags-gut_qs50_checkm_adaptedToPipeline.xlsx` (92,696 MAGs × 13 columns) has a row for every
+  genome of the 90k set, keyed by `MAG_ID`: taxonomy only (`Phylum` 10 classes … `Species`
+  116), all gut-derived, plus CheckM completeness/contamination. The combined Parquet is exactly
+  the union of the two (153,765 + 92,369 = 246,134; no overlap, no genome without metadata).
+  Taxonomy is the only label shared by both halves: in the combined set Phylum has 19 classes
+  (238,502 labelled), Class 37, Order 79, Family 137, Genus 266, Species 620.
+- **52 classes** of the predicted-flux PD dataset: Tim is waiting on a colleague.
 
 ## Benchmark hardware (recommendation, adopted unless Tim objects)
 
@@ -62,9 +73,11 @@ M1 with 16 GB will be the constraint, and that is a legitimate finding for a sca
 
 ## Open questions
 
-1. **Labels for the Parquet files.** Which metadata table maps genome IDs to classes, and which
-   class (body site, phylum, taxonomic strain as in the APOLLO abstract, …) is the target for
-   each benchmark dataset? Phase 3 cannot start on the lab data without this.
+1. **Target per lab dataset.** Metadata is now in hand (see above). Which column is the target
+   for each of the three reaction-presence sets? The combined set can only use taxonomy
+   (Phylum, Class, Order, …); the 150k set could also use Body Site, which is extremely
+   imbalanced (144,527 stool vs 63 nasal cavity). Which target(s) did the APOLLO classifier
+   use? Rows with a missing label are dropped per target.
 2. **Stable storage** for the lab datasets (the Downloads folder is temporary). Proposal:
    `benchmarks/data/` (git-ignored) plus a `benchmarks/config.yaml` entry per file.
 3. **Bundled CSV size.** `reaction_abundance_body_site.csv` has 1,957 rows × 8,306 features;
