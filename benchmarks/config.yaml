@@ -36,10 +36,10 @@ methods:
   full:            {}
   random:          {}
 
-# Seed caps for the slow methods on the 20,000-row lab tables (plan §6.3 allows 5 seeds where
-# runtime demands it): L1 logistic ~21 min and Boruta ~15-25 min per run, against < 7 min for
-# every other method. The bundled dataset runs every method with all ten seeds.
-lab_max_seeds: &lab_max_seeds { l1_logistic: 5, boruta: 5 }
+# Plan §6.3: ten seeds, five on the large lab tables where runtime demands it. One seed of all
+# eight methods on a 20,000 x 5,400 lab table costs ~55 min on the M2 Pro (Boruta ~16 min, L1
+# ~21 min), so the six lab tables use five seeds for every method; the bundled dataset uses ten.
+lab_seeds: &lab_seeds [0, 1, 2, 3, 4]
 
 datasets:
   body_site:
@@ -61,7 +61,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds
 
   rp_combined_order:
     name: "Reaction presence, combined, order"
@@ -74,7 +74,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds
 
   rp_150k_phylum:
     name: "Reaction presence, sequenced genomes, phylum"
@@ -86,7 +86,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds
 
   rp_150k_order:
     name: "Reaction presence, sequenced genomes, order"
@@ -98,7 +98,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds
 
   rp_90k_phylum:
     name: "Reaction presence, gut MAGs, phylum"
@@ -110,7 +110,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds
 
   rp_90k_order:
     name: "Reaction presence, gut MAGs, order"
@@ -122,4 +122,4 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
-    max_seeds: *lab_max_seeds
+    seeds: *lab_seeds

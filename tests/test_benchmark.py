@@ -37,6 +37,8 @@ def test_benchmark_end_to_end(tmp_path):
         },
         "methods": {
             "fastforest_mdi": {"importance": "mdi"},
+            "fastforest_perm": {"importance": "permutation", "n_repeats": 2},
+            "perm_threshold": {"n_repeats": 2},
             "l1_logistic": {"cv": 3, "Cs": 4, "max_iter": 100},
             "full": {},
             "random": {},
@@ -57,7 +59,7 @@ def test_benchmark_end_to_end(tmp_path):
 
     assert run_main(["--config", str(config_path)]) == 0
     runs = sorted((tmp_path / "results" / "runs").glob("*/*/seed*.json"))
-    assert len(runs) == 8  # 4 methods x 2 seeds
+    assert len(runs) == 12  # 6 methods x 2 seeds
     record = json.loads(
         (tmp_path / "results" / "runs" / "sample" / "fastforest_mdi" / "seed0.json").read_text()
     )
@@ -70,6 +72,14 @@ def test_benchmark_end_to_end(tmp_path):
         "macro_recall",
         "macro_f1",
     }
+    perm = json.loads(
+        (tmp_path / "results" / "runs" / "sample" / "perm_threshold" / "seed0.json").read_text()
+    )
+    ff_perm = json.loads(
+        (tmp_path / "results" / "runs" / "sample" / "fastforest_perm" / "seed0.json").read_text()
+    )
+    assert perm["extra"]["from_cache"] is True
+    assert perm["n_features"] == ff_perm["extra"]["n_important"]  # same positive-importance set
     random_record = json.loads(
         (tmp_path / "results" / "runs" / "sample" / "random" / "seed0.json").read_text()
     )
@@ -81,7 +91,14 @@ def test_benchmark_end_to_end(tmp_path):
     assert summarize_main(["--config", str(config_path)]) == 0
     summary_dir = tmp_path / "results" / "summary"
     summary = pd.read_csv(summary_dir / "summary.csv")
-    assert set(summary["method"]) == {"fastforest_mdi", "l1_logistic", "full", "random"}
+    assert set(summary["method"]) == {
+        "fastforest_mdi",
+        "fastforest_perm",
+        "perm_threshold",
+        "l1_logistic",
+        "full",
+        "random",
+    }
     assert (summary["n_runs"] == 2).all()
     stability = pd.read_csv(summary_dir / "stability.csv")
     assert stability.loc[stability["method"] == "full", "jaccard_mean"].item() == 1.0

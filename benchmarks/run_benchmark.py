@@ -82,6 +82,7 @@ def worker(spec_path: Path) -> int:
     context = {
         "fastforest": spec["fastforest"],
         "reference_n_features": spec.get("reference_n_features"),
+        "cache_dir": spec.get("cache_dir"),
     }
     t0 = time.perf_counter()
     status = "ok"
@@ -293,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
             "params": cfg["methods"].get(method, {}),
             "n_jobs": cfg.get("n_jobs", -1),
             "reference_n_features": reference,
+            "cache_dir": str(output_dir / "cache" / name),
         }
         spec_path = output_dir / "specs" / f"{name}__{method}__seed{seed}.json"
         t0 = time.perf_counter()

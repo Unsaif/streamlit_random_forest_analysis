@@ -24,6 +24,10 @@ macro precision/recall/F1, selection wall-clock seconds, peak resident memory of
 process, and method-specific details (FastForest's stopping quantile, Boruta's tentative count,
 the L1 regularisation chosen, …).
 
+The bundled body-site table runs ten seeds; the six lab tables run five (`seeds` per dataset in
+the config), which the plan allows where runtime demands it: one seed of all eight methods on a
+20,000-row table takes about an hour on a 10-core laptop.
+
 Datasets with more than `comparison_max_rows` (20,000) labelled rows are stratified-subsampled
 once (seed 0) for the method comparison; FastForest alone also runs on the full rows for the
 scalability table. Classes with fewer than `min_class_size` (10) rows are dropped before and
@@ -37,7 +41,7 @@ after subsampling.
 | `fastforest_perm` | FastForest, permutation importance on the validation split |
 | `boruta` | Boruta (`BorutaPy`) with the S2 forest, confirmed features only |
 | `rfecv` | scikit-learn `RFECV`, S2 forest, `step=0.1`, 5-fold stratified CV on train |
-| `perm_threshold` | S2 forest on train; keep features with permutation importance > 0 on validation |
+| `perm_threshold` | S2 forest on train; keep features with permutation importance > 0 on validation (reuses `fastforest_perm`'s importances when available: identical values) |
 | `l1_logistic` | L1-regularised logistic regression; C by 5-fold CV with the one-standard-error rule; keep non-zero coefficients |
 | `full` | control: no selection |
 | `random` | control: a random subset the size of `fastforest_mdi`'s final set for the same seed |

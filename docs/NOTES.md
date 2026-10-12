@@ -107,10 +107,19 @@ and keeps intermediates small.
    which includes loading the prepared table.
 5. **Seed allocation.** Timing on the 20,000-row gut-MAG phylum table (seed 0, M2 Pro): FastForest
    MDI 20 s, no-selection/random < 15 s, RFECV 5.2 min, permutation threshold 5.5 min,
-   FastForest permutation 6.4 min, L1 logistic 21 min, Boruta 15 min (54 min for all eight). The bundled body-site
-   table runs every method with 10 seeds; on the six lab tables L1 logistic and Boruta are capped
-   at 5 seeds (§6.3 allows 5 where runtime demands it) and every other method runs 10. Jobs run
-   seed-major so that every dataset × method has a seed-0 result early.
+   FastForest permutation 6.4 min, L1 logistic 21 min, Boruta 15 min (54 min for all eight;
+   the 39-class order tables are slower still). A first launch with 10 seeds projected ~36 h, so
+   Tim asked for it to be faster (2026-10-12). Now: the bundled body-site table runs every method
+   with 10 seeds; the six lab tables run every method with 5 seeds (§6.3 allows 5 where runtime
+   demands it). Jobs run seed-major so that every dataset × method has a seed-0 result early.
+   Runs completed under the 10-seed launch were kept (same protocol, same splits).
+7. **Shared permutation importances.** `fastforest_perm` (stages S2–S3) and the
+   `perm_threshold` baseline fit the same S2 forest on the training split and compute the same
+   seeded permutation importance on the validation split, so `fastforest_perm` writes its
+   importances to `results/cache/<dataset>/perm_importance_seed<k>.csv` and `perm_threshold`
+   reuses them (recorded as `from_cache`). Results are bit-identical; it saves ~5 min per
+   dataset × seed. The baseline's *selection time* is then not measured separately: report it
+   as the permutation-importance time from `fastforest_perm`'s `timings` (S2 + S3).
 6. **FastForest with permutation importance** on the lab data often finds fewer than 100
    features with positive permutation importance, cannot meet the bound within that set, falls
    back to all of them and therefore selects exactly the permutation-threshold baseline's set
