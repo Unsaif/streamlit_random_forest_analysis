@@ -32,7 +32,9 @@ methods:
   boruta:          { max_iter: 100, perc: 100, alpha: 0.05 }
   rfecv:           { step: 0.1, cv: 5 }
   perm_threshold:  { n_repeats: 5 }
-  l1_logistic:     { cv: 5, Cs: 8, max_iter: 500, rule: 1se }   # rule: 1se | cv
+  # liblinear one-versus-rest: ~50 s per fit on a 12k x 5.4k training split where converged
+  # multinomial saga needs > 10 min; C grid 1e-3 .. 1e2 (the 1-SE choice lands at 0.1-10).
+  l1_logistic:     { solver: liblinear, cv: 5, Cs: 6, log_c_min: -3, log_c_max: 2, max_iter: 500, rule: 1se }
   full:            {}
   random:          {}
 

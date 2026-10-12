@@ -97,6 +97,12 @@ and keeps intermediates small.
    rule on the 5-fold CV accuracy curve (the strongest regularisation within one SE of the best,
    as glmnet's `lambda.1se`), which is still "C by 5-fold CV on train" (§6.2). Both C values are
    recorded per run; `rule: cv` in the config restores the plain CV-best choice.
+   **Solver (2026-10-12, speed-up):** multinomial saga needed > 10 min for one converged fit on a
+   12k × 5.4k training split (21 min for the whole CV at 8 classes, > 60 min at 39 classes).
+   liblinear one-versus-rest fits the same problem in ~50 s with fewer non-zero coefficients
+   and equal validation accuracy (0.9997 vs 0.9975 for a loosely converged saga), so the
+   baseline uses liblinear OvR with the fold × C grid run in parallel and C ∈ logspace(−3, 2, 6).
+   The three L1 runs completed with saga were discarded and redone.
 2. **Boruta trees.** `BorutaPy(n_estimators="auto")` would grow ~1,000 trees per iteration on
    5,000 features; the plan says the S2 hyper-parameters, so 100 trees are used.
 3. **Class filtering.** Rows without a label are dropped; classes with fewer than 10 rows are
