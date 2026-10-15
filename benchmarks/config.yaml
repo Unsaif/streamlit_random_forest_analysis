@@ -44,6 +44,10 @@ methods:
 # eight methods on a 20,000 x 5,400 lab table costs ~55 min on the M2 Pro (Boruta ~16 min, L1
 # ~21 min), so the six lab tables use five seeds for every method; the bundled dataset uses ten.
 lab_seeds: &lab_seeds [0, 1, 2, 3, 4]
+# Seeds 1-4 run on the combined table only (2026-10-15): it is the table the manuscript used, and
+# the sequenced-genome (150k) and gut-MAG (90k) tables are its two halves, so they keep seed 0 as
+# a robustness check. This cuts the remaining run time from ~35 h to ~18 h.
+half_seeds: &half_seeds [0]
 
 datasets:
   body_site:
@@ -90,7 +94,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
-    seeds: *lab_seeds
+    seeds: *half_seeds
 
   rp_150k_order:
     name: "Reaction presence, sequenced genomes, order"
@@ -102,7 +106,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
-    seeds: *lab_seeds
+    seeds: *half_seeds
 
   rp_90k_phylum:
     name: "Reaction presence, gut MAGs, phylum"
@@ -114,7 +118,7 @@ datasets:
     target: Phylum
     feature_type: "binary (reaction presence)"
     scalability: true
-    seeds: *lab_seeds
+    seeds: *half_seeds
 
   rp_90k_order:
     name: "Reaction presence, gut MAGs, order"
@@ -126,7 +130,7 @@ datasets:
     target: Order
     feature_type: "binary (reaction presence)"
     scalability: true
-    seeds: *lab_seeds
+    seeds: *half_seeds
 
   # Genus level matches the taxonomic depth of the manuscript's APOLLO datasets (species, genus,
   # family, class with 21-99 classes); phylum and order above are coarser. Classes with fewer
@@ -156,7 +160,7 @@ datasets:
     target: Genus
     feature_type: "binary (reaction presence)"
     scalability: false
-    seeds: *lab_seeds
+    seeds: *half_seeds
     max_seeds: { l1_logistic: 1 }   # seed 0 only until its cost on 64-105 classes is known
 
   rp_90k_genus:
@@ -169,5 +173,5 @@ datasets:
     target: Genus
     feature_type: "binary (reaction presence)"
     scalability: false
-    seeds: *lab_seeds
+    seeds: *half_seeds
     max_seeds: { l1_logistic: 1 }   # seed 0 only until its cost on 64-105 classes is known

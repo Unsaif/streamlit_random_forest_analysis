@@ -131,6 +131,11 @@ and keeps intermediates small.
    with 10 seeds; the six lab tables run every method with 5 seeds (§6.3 allows 5 where runtime
    demands it). Jobs run seed-major so that every dataset × method has a seed-0 result early.
    Runs completed under the 10-seed launch were kept (same protocol, same splits).
+   **2026-10-15 (Tim):** seeds 1–4 on the combined table only; the 150k (sequenced genomes)
+   and 90k (gut MAGs) tables, its two halves, keep seed 0 as a robustness check. The combined
+   table is what the manuscript used (its references cite "150k and 90k data" together).
+   Remaining time ~35 h → ~18 h at low priority; 244 runs in total. Stability (Jaccard across
+   seeds) is therefore reported for body site and the three combined tables only.
 7. **Shared permutation importances.** `fastforest_perm` (stages S2–S3) and the
    `perm_threshold` baseline fit the same S2 forest on the training split and compute the same
    seeded permutation importance on the validation split, so `fastforest_perm` writes its

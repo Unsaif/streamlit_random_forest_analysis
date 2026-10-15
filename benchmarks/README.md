@@ -24,9 +24,10 @@ macro precision/recall/F1, selection wall-clock seconds, peak resident memory of
 process, and method-specific details (FastForest's stopping quantile, Boruta's tentative count,
 the L1 regularisation chosen, …).
 
-The bundled body-site table runs ten seeds; the six lab tables run five (`seeds` per dataset in
-the config), which the plan allows where runtime demands it: one seed of all eight methods on a
-20,000-row table takes about an hour on a 10-core laptop.
+The bundled body-site table runs ten seeds; the three combined APOLLO tables run five and their
+two halves (sequenced genomes, gut MAGs) one, as a robustness check (`seeds` per dataset in the
+config). The plan allows five where runtime demands it: one seed of all eight methods on a
+20,000-row table takes 35–65 minutes on a 10-core laptop at low priority.
 
 Datasets with more than `comparison_max_rows` (20,000) labelled rows are stratified-subsampled
 once (seed 0) for the method comparison; FastForest alone also runs on the full rows for the
