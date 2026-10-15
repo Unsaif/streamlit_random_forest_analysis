@@ -2,11 +2,15 @@
 
 import json
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
 import pytest
-import yaml
+
+yaml = pytest.importorskip("yaml")  # the benchmark needs the `bench` extra
+pytest.importorskip("boruta")
+psutil = pytest.importorskip("psutil")
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -14,8 +18,6 @@ sys.path.insert(0, str(ROOT))
 from benchmarks.run_benchmark import main as run_main  # noqa: E402
 from benchmarks.summarize import main as summarize_main  # noqa: E402
 from fastforest.datasets import sample_path  # noqa: E402
-
-pytest.importorskip("boruta")
 
 
 def test_benchmark_end_to_end(tmp_path):
@@ -108,3 +110,53 @@ def test_benchmark_end_to_end(tmp_path):
     assert env["config_hash"] and env["versions"]["fastforest"]
     assert (summary_dir / "fig_reduction_vs_accuracy.png").exists()
     assert (summary_dir / "per_run.csv").exists()
+
+
+def test_timeout_kills_the_worker_and_its_children(tmp_path):
+    """Regression: a timed-out run must not leave orphaned joblib workers computing."""
+    started = time.time()
+    config = {
+        "output_dir": str(tmp_path / "results"),
+        "prepared_dir": str(tmp_path / "prepared"),
+        "seeds": [0],
+        "split": {"val_size": 0.2, "test_size": 0.2},
+        "comparison_max_rows": 1000,
+        "min_class_size": 10,
+        "n_jobs": 2,
+        "timeout_hours": 8 / 3600,  # 8 s: inside the permutation-importance step
+        "final_model": {"n_estimators": 10, "max_features": 0.5, "min_samples_leaf": 5},
+        "fastforest": {
+            "bound": 0.02,
+            "criterion": "accuracy",
+            "cluster_threshold": 0.01,
+            "enforce_bound": True,
+        },
+        "methods": {"fastforest_perm": {"importance": "permutation", "n_repeats": 50}},
+        "datasets": {
+            "sample": {
+                "name": "bundled sample",
+                "source": "test",
+                "kind": "csv",
+                "path": str(sample_path()),
+                "target": "Body site",
+                "feature_type": "continuous",
+            }
+        },
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config))
+
+    assert run_main(["--config", str(config_path)]) == 0
+    record = json.loads(
+        (tmp_path / "results" / "runs" / "sample" / "fastforest_perm" / "seed0.json").read_text()
+    )
+    assert record["status"] == "timeout"
+
+    time.sleep(1)
+    orphans = []
+    for proc in psutil.process_iter(["cmdline", "create_time", "ppid"]):
+        cmdline = " ".join(proc.info["cmdline"] or [])
+        if (proc.info["create_time"] or 0) >= started and proc.info["ppid"] == 1:
+            if "joblib.externals.loky" in cmdline or "run_benchmark.py" in cmdline:
+                orphans.append(cmdline[:80])
+    assert not orphans, orphans

@@ -18,8 +18,10 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import platform
 import resource
+import signal
 import subprocess
 import sys
 import time
@@ -168,15 +170,36 @@ import numpy as np  # noqa: E402  (used by worker; imported late to keep the CLI
 
 
 # ------------------------------------------------------------------------------ driver
+def _kill_group(proc: subprocess.Popen) -> None:
+    """Kill a worker and every process it started (its joblib/loky workers share its group)."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    proc.wait()
+
+
+def _terminate(signum, frame):
+    raise SystemExit(128 + signum)
+
+
 def launch(spec: dict, spec_path: Path, timeout_hours: float) -> str:
+    """Run one worker in its own process group and wait for it, up to ``timeout_hours``.
+
+    Killing only the worker on a timeout or a stop would orphan its joblib workers, which keep
+    computing; the whole group is killed instead.
+    """
     spec_path.parent.mkdir(parents=True, exist_ok=True)
     spec_path.write_text(json.dumps(spec, indent=1))
     cmd = [sys.executable, str(Path(__file__).resolve()), "--worker", str(spec_path)]
+    proc = subprocess.Popen(cmd, start_new_session=True)
     try:
-        proc = subprocess.run(cmd, timeout=timeout_hours * 3600, check=False)
+        returncode = proc.wait(timeout=timeout_hours * 3600)
     except subprocess.TimeoutExpired:
-        Path(spec["out"]).parent.mkdir(parents=True, exist_ok=True)
-        Path(spec["out"]).write_text(
+        _kill_group(proc)
+        out = Path(spec["out"])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
             json.dumps(
                 {
                     "dataset": spec["dataset"],
@@ -190,7 +213,10 @@ def launch(spec: dict, spec_path: Path, timeout_hours: float) -> str:
             )
         )
         return "timeout"
-    return "ok" if proc.returncode == 0 else "error"
+    except BaseException:  # driver stopped (SIGTERM, Ctrl-C): take the worker group down too
+        _kill_group(proc)
+        raise
+    return "ok" if returncode == 0 else "error"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -218,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.worker:
         return worker(args.worker)
+    signal.signal(signal.SIGTERM, _terminate)  # `pkill -f run_benchmark.py` stops cleanly
 
     cfg = load_config(args.config)
     output_dir = ROOT / cfg["output_dir"]

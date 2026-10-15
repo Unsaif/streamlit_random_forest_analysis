@@ -103,6 +103,18 @@ and keeps intermediates small.
    and equal validation accuracy (0.9997 vs 0.9975 for a loosely converged saga), so the
    baseline uses liblinear OvR with the fold × C grid run in parallel and C ∈ logspace(−3, 2, 6).
    The three L1 runs completed with saga were discarded and redone.
+   **Grid cap (2026-10-13):** the first liblinear grid went up to C = 100; on the combined phylum
+   table the C = 10 and C = 100 fits ran all night (six joblib workers, ~31 CPU-hours, no
+   convergence; Tim's laptop ran hot). The grid is now C ∈ {1e-3, 1e-2, 0.1, 1} with
+   `max_iter = 100` (convergence warnings are counted per run), and the per-run timeout is 3 h
+   so a pathological run is recorded as a timeout instead of occupying the machine.
+   Each worker now runs in its own process group and a timeout or a stop of the driver kills
+   the whole group: killing only the worker would orphan its joblib children, which keep
+   computing (regression test `test_timeout_kills_the_worker_and_its_children`). L1 on the
+   three genus tables (64–105 classes, one binary fit per class) runs seed 0 only until its
+   cost is measured. The campaign runs at `nice 19` so the laptop stays usable; wall-clock
+   times of runs made while Tim worked are therefore noisy, and the scalability table (T3)
+   must be timed on an otherwise idle machine.
 2. **Boruta trees.** `BorutaPy(n_estimators="auto")` would grow ~1,000 trees per iteration on
    5,000 features; the plan says the S2 hyper-parameters, so 100 trees are used.
 3. **Class filtering.** Rows without a label are dropped; classes with fewer than 10 rows are
