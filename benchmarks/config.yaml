@@ -148,7 +148,7 @@ datasets:
     feature_type: "binary (reaction presence)"
     scalability: false
     seeds: *lab_seeds
-    max_seeds: { l1_logistic: 1 }   # seed 0 only until its cost on 64-105 classes is known
+    max_seeds: { l1_logistic: 1 }   # seed 0 only: ~45-90 min per run at 64-105 classes (Tim, 2026-10-16)
 
   rp_150k_genus:
     name: "Reaction presence, sequenced genomes, genus"
@@ -161,7 +161,7 @@ datasets:
     feature_type: "binary (reaction presence)"
     scalability: false
     seeds: *half_seeds
-    max_seeds: { l1_logistic: 1 }   # seed 0 only until its cost on 64-105 classes is known
+    max_seeds: { l1_logistic: 1 }   # seed 0 only: ~45-90 min per run at 64-105 classes (Tim, 2026-10-16)
 
   rp_90k_genus:
     name: "Reaction presence, gut MAGs, genus"
@@ -174,4 +174,4 @@ datasets:
     feature_type: "binary (reaction presence)"
     scalability: false
     seeds: *half_seeds
-    max_seeds: { l1_logistic: 1 }   # seed 0 only until its cost on 64-105 classes is known
+    max_seeds: { l1_logistic: 1 }   # seed 0 only: ~45-90 min per run at 64-105 classes (Tim, 2026-10-16)

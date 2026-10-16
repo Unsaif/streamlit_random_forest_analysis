@@ -111,8 +111,9 @@ and keeps intermediates small.
    Each worker now runs in its own process group and a timeout or a stop of the driver kills
    the whole group: killing only the worker would orphan its joblib children, which keep
    computing (regression test `test_timeout_kills_the_worker_and_its_children`). L1 on the
-   three genus tables (64–105 classes, one binary fit per class) runs seed 0 only until its
-   cost is measured. The campaign runs at `nice 19` so the laptop stays usable; wall-clock
+   three genus tables (64–105 classes, one binary fit per class) runs seed 0 only. Measured at
+   low priority: 78 / 88 / 44 min (combined / 150k / 90k); four more seeds on the combined table
+   would add ~5 h, so Tim decided on 2026-10-16 to report L1 at genus level as a single run. The campaign runs at `nice 19` so the laptop stays usable; wall-clock
    times of runs made while Tim worked are therefore noisy, and the scalability table (T3)
    must be timed on an otherwise idle machine.
    **Log flood (2026-10-16):** `fastforest_perm` on the combined phylum table, seed 2, printed
