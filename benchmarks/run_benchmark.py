@@ -15,16 +15,19 @@ files into the tables and figures.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import logging
 import os
 import platform
 import resource
+import shutil
 import signal
 import subprocess
 import sys
 import time
+import warnings
 from pathlib import Path
 
 import yaml
@@ -37,6 +40,13 @@ from benchmarks.datasets import load_prepared, prepare_dataset, prepared_paths  
 from benchmarks.methods import METHODS, make_rf  # noqa: E402
 
 log = logging.getLogger("benchmark")
+
+# scikit-learn >= 1.3 warns on every call of a parallel task that did not receive its settings;
+# its wrapper also resets the warning filters on each call, which defeats "print once", so on
+# 2026-10-16 one run printed it ~3.5 million times (833 MB). The settings are scikit-learn's
+# defaults here, so the warning carries no information; it is silenced in every worker.
+SKLEARN_DELAYED_WARNING = "`sklearn.utils.parallel.delayed` should be used"
+RUN_LOG_GZIP_BYTES = 20 * 1024 * 1024  # run logs above this size are compressed after the run
 
 
 def load_config(path: Path) -> dict:
@@ -64,6 +74,7 @@ def worker(spec_path: Path) -> int:
     from fastforest.metrics import compute_metrics
     from fastforest.split import make_splits
 
+    warnings.filterwarnings("ignore", message=SKLEARN_DELAYED_WARNING, category=UserWarning)
     spec = json.loads(spec_path.read_text())
     out = Path(spec["out"])
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -183,6 +194,16 @@ def _terminate(signum, frame):
     raise SystemExit(128 + signum)
 
 
+def _compress_if_large(run_log: Path) -> None:
+    """Gzip a run log that grew beyond RUN_LOG_GZIP_BYTES and say so in the driver log."""
+    if run_log.exists() and run_log.stat().st_size > RUN_LOG_GZIP_BYTES:
+        size_mb = run_log.stat().st_size / 1e6
+        with run_log.open("rb") as src, gzip.open(f"{run_log}.gz", "wb") as dst:
+            shutil.copyfileobj(src, dst)
+        run_log.unlink()
+        log.warning("%s was %.0f MB; compressed to %s.gz", run_log, size_mb, run_log.name)
+
+
 def launch(spec: dict, spec_path: Path, timeout_hours: float) -> str:
     """Run one worker in its own process group and wait for it, up to ``timeout_hours``.
 
@@ -192,30 +213,40 @@ def launch(spec: dict, spec_path: Path, timeout_hours: float) -> str:
     spec_path.parent.mkdir(parents=True, exist_ok=True)
     spec_path.write_text(json.dumps(spec, indent=1))
     cmd = [sys.executable, str(Path(__file__).resolve()), "--worker", str(spec_path)]
-    proc = subprocess.Popen(cmd, start_new_session=True)
-    try:
-        returncode = proc.wait(timeout=timeout_hours * 3600)
-    except subprocess.TimeoutExpired:
-        _kill_group(proc)
-        out = Path(spec["out"])
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(
-            json.dumps(
-                {
-                    "dataset": spec["dataset"],
-                    "method": spec["method"],
-                    "seed": spec["seed"],
-                    "scalability": spec["scalability"],
-                    "status": "timeout",
-                    "timeout_hours": timeout_hours,
-                },
-                indent=1,
-            )
+    run_log = Path(spec["out"]).with_suffix(".log")  # next to the run's result file
+    run_log.parent.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()  # joblib's worker processes read PYTHONWARNINGS at start-up
+    silence = f"ignore:{SKLEARN_DELAYED_WARNING}:UserWarning"
+    env["PYTHONWARNINGS"] = ",".join(filter(None, [env.get("PYTHONWARNINGS"), silence]))
+    with run_log.open("w") as log_file:
+        proc = subprocess.Popen(
+            cmd, start_new_session=True, env=env, stdout=log_file, stderr=subprocess.STDOUT
         )
-        return "timeout"
-    except BaseException:  # driver stopped (SIGTERM, Ctrl-C): take the worker group down too
-        _kill_group(proc)
-        raise
+        try:
+            returncode = proc.wait(timeout=timeout_hours * 3600)
+        except subprocess.TimeoutExpired:
+            _kill_group(proc)
+            _compress_if_large(run_log)
+            out = Path(spec["out"])
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(
+                json.dumps(
+                    {
+                        "dataset": spec["dataset"],
+                        "method": spec["method"],
+                        "seed": spec["seed"],
+                        "scalability": spec["scalability"],
+                        "status": "timeout",
+                        "timeout_hours": timeout_hours,
+                    },
+                    indent=1,
+                )
+            )
+            return "timeout"
+        except BaseException:  # driver stopped (SIGTERM, Ctrl-C): take the worker group down too
+            _kill_group(proc)
+            raise
+    _compress_if_large(run_log)
     return "ok" if returncode == 0 else "error"
 
 

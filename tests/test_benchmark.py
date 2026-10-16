@@ -67,6 +67,8 @@ def test_benchmark_end_to_end(tmp_path):
     )
     assert record["status"] == "ok"
     assert 0 < record["n_features"] < record["n_features_total"]
+    run_log = tmp_path / "results" / "runs" / "sample" / "fastforest_mdi" / "seed0.log"
+    assert "Threshold search kept" in run_log.read_text()  # worker output goes to its own log
     assert record["n_rows"] == 400
     assert set(record["metrics_test"]) == {
         "accuracy",
@@ -160,3 +162,16 @@ def test_timeout_kills_the_worker_and_its_children(tmp_path):
             if "joblib.externals.loky" in cmdline or "run_benchmark.py" in cmdline:
                 orphans.append(cmdline[:80])
     assert not orphans, orphans
+
+
+def test_large_run_logs_are_compressed(tmp_path):
+    from benchmarks import run_benchmark as rb
+
+    run_log = tmp_path / "seed0.log"
+    run_log.write_bytes(b"x" * (rb.RUN_LOG_GZIP_BYTES + 1))
+    rb._compress_if_large(run_log)
+    assert not run_log.exists() and (tmp_path / "seed0.log.gz").exists()
+    small = tmp_path / "seed1.log"
+    small.write_text("fine")
+    rb._compress_if_large(small)
+    assert small.read_text() == "fine"

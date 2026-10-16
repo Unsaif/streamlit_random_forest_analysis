@@ -115,6 +115,17 @@ and keeps intermediates small.
    cost is measured. The campaign runs at `nice 19` so the laptop stays usable; wall-clock
    times of runs made while Tim worked are therefore noisy, and the scalability table (T3)
    must be timed on an otherwise idle machine.
+   **Log flood (2026-10-16):** `fastforest_perm` on the combined phylum table, seed 2, printed
+   one scikit-learn warning ("`sklearn.utils.parallel.delayed` should be used with
+   `sklearn.utils.parallel.Parallel`…") ~3.5 million times in 5 min, 833 MB of the shared log.
+   scikit-learn's parallel wrapper resets the warning filters on every call, which defeats
+   "print once". The warning means scikit-learn's settings were not handed to a worker; they
+   are the defaults here, so results are unaffected (that run: 97 features, test accuracy
+   0.9922, 294 s; seeds 0/1/3: 54–136 features, 0.990–0.995, 283–318 s). From 2026-10-16: the warning is silenced in every worker (filter + `PYTHONWARNINGS` for joblib's
+   processes), each run writes its output to `results/runs/<table>/<method>/seed<k>.log`, logs
+   over 20 MB are gzipped, and the old shared log is archived as
+   `results/campaign_2026-10-12_to_16.log.gz` with a filtered copy
+   (`results/campaign_2026-10-12_to_16.filtered.log`) that drops the repeated warning.
 2. **Boruta trees.** `BorutaPy(n_estimators="auto")` would grow ~1,000 trees per iteration on
    5,000 features; the plan says the S2 hyper-parameters, so 100 trees are used.
 3. **Class filtering.** Rows without a label are dropped; classes with fewer than 10 rows are
