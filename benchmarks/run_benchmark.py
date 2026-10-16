@@ -307,7 +307,9 @@ def main(argv: list[str] | None = None) -> int:
             if not meta.get("scalability"):
                 continue
             data_path = paths["full"]
-            run_methods = [m for m in methods if m.startswith("fastforest")]
+            # T3 times FastForest's default configuration; the permutation variant would take
+            # many hours per full-size table (n_features x n_repeats forest predictions).
+            run_methods = [m for m in methods if m == "fastforest_mdi"]
             run_seeds = seeds[: dcfg.get("scalability_seeds", cfg.get("scalability_seeds", 1))]
             max_seeds: dict[str, int] = {}
         else:

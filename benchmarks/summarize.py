@@ -127,6 +127,23 @@ def per_run_table(runs: list[dict]) -> pd.DataFrame:
             if key in extra:
                 row[key] = extra[key]
         rows.append(row)
+    # perm_threshold reuses the forest and permutation importances computed by fastforest_perm
+    # (stages S2 + S3, identical by construction), so its own wall-clock time is ~0 s; charge it
+    # the time of that shared computation instead.
+    shared = {
+        (r["dataset"], r["seed"]): sum(
+            (r.get("extra") or {}).get("timings", {}).get(k, 0.0)
+            for k in ("full_model", "importance")
+        )
+        for r in runs
+        if r["method"] == "fastforest_perm" and r.get("status") == "ok"
+    }
+    for row, r in zip(rows, runs, strict=True):
+        if r["method"] == "perm_threshold" and (r.get("extra") or {}).get("from_cache"):
+            key = (r["dataset"], r["seed"])
+            if key in shared:
+                row["select_seconds"] = shared[key]
+                row["select_seconds_from"] = "fastforest_perm S2+S3"
     frame = pd.DataFrame(rows)
     if not frame.empty:
         frame["method"] = pd.Categorical(
@@ -220,9 +237,29 @@ def scalability_table(runs: list[dict]) -> pd.DataFrame:
 
 
 # ------------------------------------------------------------------------------ figures
-def figure_reduction_vs_accuracy(per_run: pd.DataFrame) -> Figure:
+def _dataset_order(present, cfg: dict | None) -> list[str]:
+    """Datasets in config order (falls back to first appearance)."""
+    present = list(dict.fromkeys(present))
+    if cfg:
+        ordered = [d for d in cfg["datasets"] if d in present]
+        # multi-seed tables first (config order within each group), single-seed tables after
+        n_seeds = {d: len(cfg["datasets"][d].get("seeds", cfg["seeds"])) for d in ordered}
+        ordered.sort(key=lambda d: -n_seeds[d])
+        return ordered + [d for d in present if d not in ordered]
+    return present
+
+
+def _dataset_label(name: str, cfg: dict | None) -> str:
+    if cfg and name in cfg["datasets"]:
+        return cfg["datasets"][name].get("name", name)
+    return name
+
+
+def figure_reduction_vs_accuracy(per_run: pd.DataFrame, cfg: dict | None = None) -> Figure:
+    from matplotlib.ticker import LogLocator, NullFormatter
+
     ok = per_run[per_run["status"] == "ok"]
-    datasets = list(dict.fromkeys(ok["dataset"]))
+    datasets = _dataset_order(ok["dataset"], cfg)
     ncols = min(3, max(1, len(datasets)))
     nrows = int(np.ceil(len(datasets) / ncols))
     fig = Figure(figsize=(4.2 * ncols, 3.6 * nrows))
@@ -232,19 +269,26 @@ def figure_reduction_vs_accuracy(per_run: pd.DataFrame) -> Figure:
         ax = axes[i // ncols][i % ncols]
         sub = ok[ok["dataset"] == dataset]
         for method, grp in sub.groupby("method", observed=True):
+            acc = 100 * grp["test_accuracy"]
             ax.errorbar(
                 grp["n_features"].mean(),
-                grp["test_accuracy"].mean(),
+                acc.mean(),
                 xerr=grp["n_features"].std(ddof=1) if len(grp) > 1 else None,
-                yerr=grp["test_accuracy"].std(ddof=1) if len(grp) > 1 else None,
+                yerr=acc.std(ddof=1) if len(grp) > 1 else None,
                 fmt=markers.get(str(method), "o"),
                 capsize=2,
                 label=METHOD_LABELS.get(str(method), str(method)),
             )
         ax.set_xscale("log")
-        ax.set_xlabel("features retained")
-        ax.set_ylabel("test accuracy")
-        ax.set_title(dataset, fontsize=10)
+        ax.xaxis.set_major_locator(LogLocator(base=10))
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xlabel("features retained (log scale)")
+        ax.set_ylabel("test accuracy (%)")
+        n_seeds = sub["seed"].nunique()
+        ax.set_title(
+            f"{_dataset_label(dataset, cfg)}\n({n_seeds} seed{'s' if n_seeds > 1 else ''})",
+            fontsize=9,
+        )
         ax.grid(alpha=0.3)
     for j in range(len(datasets), nrows * ncols):
         axes[j // ncols][j % ncols].axis("off")
@@ -254,10 +298,12 @@ def figure_reduction_vs_accuracy(per_run: pd.DataFrame) -> Figure:
     return fig
 
 
-def figure_stability(stability: pd.DataFrame) -> Figure:
-    datasets = list(dict.fromkeys(stability["dataset"]))
-    methods = [m for m in METHOD_ORDER if m in set(stability["method"])]
-    fig = Figure(figsize=(1.2 * len(datasets) + 3, 3.8))
+def figure_stability(stability: pd.DataFrame, cfg: dict | None = None) -> Figure:
+    stability = stability[stability["n_runs"] > 1]
+    datasets = _dataset_order(stability["dataset"], cfg)
+    # "no selection" is 1 by definition; leave it out
+    methods = [m for m in METHOD_ORDER if m in set(stability["method"]) and m != "full"]
+    fig = Figure(figsize=(1.6 * len(datasets) + 4, 3.8))
     ax = fig.add_subplot(111)
     width = 0.8 / max(1, len(methods))
     x = np.arange(len(datasets))
@@ -272,10 +318,12 @@ def figure_stability(stability: pd.DataFrame) -> Figure:
             label=METHOD_LABELS.get(method, method),
         )
     ax.set_xticks(x)
-    ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
+    ax.set_xticklabels(
+        [_dataset_label(d, cfg) for d in datasets], rotation=30, ha="right", fontsize=8
+    )
     ax.set_ylabel("mean pairwise Jaccard")
     ax.set_ylim(0, 1)
-    ax.legend(fontsize=7, ncol=2)
+    ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1))
     fig.tight_layout()
     return fig
 
@@ -320,14 +368,11 @@ def main(argv: list[str] | None = None) -> int:
         summary.to_csv(summary_dir / "summary.csv", index=False)
         stability = stability_table(runs)
         stability.to_csv(summary_dir / "stability.csv", index=False)
-        figure_reduction_vs_accuracy(ok).savefig(
-            summary_dir / "fig_reduction_vs_accuracy.png", dpi=200, bbox_inches="tight"
-        )
-        figure_reduction_vs_accuracy(ok).savefig(
-            summary_dir / "fig_reduction_vs_accuracy.pdf", bbox_inches="tight"
-        )
-        if not stability.empty:
-            figure_stability(stability).savefig(
+        fig = figure_reduction_vs_accuracy(ok, cfg)
+        fig.savefig(summary_dir / "fig_reduction_vs_accuracy.png", dpi=200, bbox_inches="tight")
+        fig.savefig(summary_dir / "fig_reduction_vs_accuracy.pdf", bbox_inches="tight")
+        if not stability[stability["n_runs"] > 1].empty:
+            figure_stability(stability, cfg).savefig(
                 summary_dir / "fig_stability.png", dpi=200, bbox_inches="tight"
             )
     datasets_table(cfg, prepared_dir).to_csv(summary_dir / "datasets.csv", index=False)
