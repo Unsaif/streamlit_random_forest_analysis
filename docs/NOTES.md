@@ -117,7 +117,7 @@ and keeps intermediates small.
    must be timed on an otherwise idle machine.
    **Log flood (2026-10-16):** `fastforest_perm` on the combined phylum table, seed 2, printed
    one scikit-learn warning ("`sklearn.utils.parallel.delayed` should be used with
-   `sklearn.utils.parallel.Parallel`…") ~3.5 million times in 5 min, 833 MB of the shared log.
+   `sklearn.utils.parallel.Parallel`…") 2,476,354 times in 5 min, 833 MB of the shared log.
    scikit-learn's parallel wrapper resets the warning filters on every call, which defeats
    "print once". The warning means scikit-learn's settings were not handed to a worker; they
    are the defaults here, so results are unaffected (that run: 97 features, test accuracy
