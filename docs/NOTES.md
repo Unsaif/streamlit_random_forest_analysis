@@ -203,3 +203,13 @@ and keeps intermediates small.
    master_script.m`) builds `processed_fluxes.csv` from the 1,450 per-model `.mat` solutions
    (11.7 GB on Dataverse), which is not practical to redo here.
 6. Confirm interpretation 1 above (fallback `bound_satisfied` semantics).
+
+## Phase 3 status (2026-10-16)
+
+- Comparison campaign complete 14:05: 244 of 244 runs ok (0 errors, 0 timeouts). Outputs in
+  `results/summary/`: `per_run.csv`, `summary.csv`, `stability.csv`, `datasets.csv`,
+  `fig_reduction_vs_accuracy.{png,pdf}`, `fig_stability.png`; environment in `results/env.json`.
+- Scalability runs (T3) time `fastforest_mdi` only on the six full-size phylum/order tables
+  (90k–238k rows), one seed each, on an idle machine (`--scalability`); not run yet.
+- `perm_threshold` selection time in `per_run.csv` is the shared S2+S3 time of `fastforest_perm`
+  (`select_seconds_from`), because it reuses those importances.
