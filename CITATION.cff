@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use FastForest in your work, please cite it as below."
+type: software
+title: "FastForest: random-forest feature reduction for high-dimensional tabular data"
+version: 1.0.0.dev0
+date-released: "2026-10-12"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/ThieleLab/streamlit_random_forest_analysis"
+url: "https://fastforest.vmh.life"
+abstract: >-
+  FastForest trains a random forest on all features of a labelled table, searches for the
+  smallest importance-ranked feature subset whose validation metrics stay within a bound of the
+  full model, removes redundant features by Spearman-correlation clustering, and reports the final
+  model on a held-out test split. It ships as a Python library, a command-line tool and a
+  Streamlit web application.
+authors:
+  - family-names: Hulshof
+    given-names: Tim O.
+    email: t.hulshof1@universityofgalway.ie
+    affiliation: "School of Medicine and Ryan Institute, University of Galway, Ireland"
+  - family-names: Thiele
+    given-names: Ines
+    email: ines.thiele@universityofgalway.ie
+    affiliation: "School of Medicine and Ryan Institute, University of Galway, Ireland"
+contact:
+  - family-names: Hulshof
+    given-names: Tim O.
+    email: t.hulshof1@universityofgalway.ie
+keywords:
+  - random forest
+  - feature selection
+  - feature reduction
+  - tabular data
+  - metabolic modelling

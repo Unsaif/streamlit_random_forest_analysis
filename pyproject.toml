@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fastforest"
+dynamic = ["version"]
+description = "Random-forest feature reduction for high-dimensional tabular data (library, CLI and Streamlit app)"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+  { name = "Tim Hulshof", email = "t.hulshof1@universityofgalway.ie" },
+  { name = "Ines Thiele", email = "ines.thiele@universityofgalway.ie" },
+]
+maintainers = [{ name = "Tim Hulshof", email = "t.hulshof1@universityofgalway.ie" }]
+keywords = [
+  "random forest",
+  "feature selection",
+  "feature reduction",
+  "dimensionality reduction",
+  "tabular data",
+  "metabolic modelling",
+  "streamlit",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.10",
+  "scikit-learn>=1.3",
+  "matplotlib>=3.7",
+  "plotly>=5.15",
+  "umap-learn>=0.5.4",
+]
+
+[project.optional-dependencies]
+app = ["streamlit>=1.32", "pyarrow>=14"]
+# Boruta is added in Phase 3 once its compatibility with current numpy is verified (see docs/NOTES.md).
+bench = ["pyyaml>=6.0", "psutil>=5.9", "pyarrow>=14"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.5"]
+
+[project.scripts]
+fastforest = "fastforest.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ThieleLab/streamlit_random_forest_analysis"
+Repository = "https://github.com/ThieleLab/streamlit_random_forest_analysis"
+Issues = "https://github.com/ThieleLab/streamlit_random_forest_analysis/issues"
+"Web app" = "https://fastforest.vmh.life"
+
+[tool.setuptools]
+packages = ["fastforest"]
+
+[tool.setuptools.package-data]
+fastforest = ["data/*.csv.gz", "data/*.md"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fastforest._version.__version__" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["results", "benchmarks/data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "NPY", "RUF100"]
+ignore = ["B028"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fastforest"]
+
+[tool.coverage.run]
+source = ["fastforest"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = [
+  "ignore::DeprecationWarning:umap",
+  "ignore::DeprecationWarning:numba",
+  "ignore::DeprecationWarning:pkg_resources",
+  "ignore:Some inputs do not have OOB scores:UserWarning",
+]

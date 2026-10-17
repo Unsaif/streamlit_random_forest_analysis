@@ -1,7 +1,32 @@
+# virtual environments
+.venv/
 .venv_streamlit
-images
 venv38
-__pycache__
+
+# python build / tooling
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# run outputs and large data
+results/
+benchmarks/data/
 streamlit.log
-# images/*
-# !images/.gitkeep
+images
+
+# internal planning, not for the public repo
+CLAUDE.local.md
+docs/internal/
+
+# OS
+.DS_Store
+
+# Claude desktop app launch config
+.claude/
