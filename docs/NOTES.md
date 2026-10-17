@@ -248,3 +248,14 @@ The report does document the construction, so the relevant sets are inferred fro
   therefore reported for accuracy, reduction and stability only, without recovery scores; figure
   F4 covers Madelon.
 
+## Phase 3 complete (2026-10-17)
+
+All planned runs done: 484 comparison runs (body site 10 seeds; APOLLO combined phylum/order/
+genus 5 seeds, halves 1 seed; Madelon, Gisette, GEMLeR breast 10 seeds) and 6 scalability runs,
+0 errors, 0 timeouts. `bash benchmarks/reproduce.sh` re-verified with all of them (490 skipped,
+summary rebuilt). Tables, figures and a checkpoint brief with caveats are in `results/summary/`
+(`CHECKPOINT.md`; git-ignored). Headline: on the APOLLO tables FastForest keeps 2–11× fewer
+features than Boruta, RFECV or L1 at equal or better accuracy; on the public benchmarks it matches
+using all features with ≤ 1.4% of them, but the best baseline is 0.4–1.8 points more accurate with
+3–12× more features. Stability is FastForest's weak point on the combined APOLLO tables.
+Plan acceptance for Phase 3 met; next is the checkpoint in the supervisor thread (Tim).
