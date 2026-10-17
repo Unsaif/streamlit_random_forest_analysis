@@ -228,6 +228,8 @@ def scalability_table(runs: list[dict]) -> pd.DataFrame:
                 "reduction": r.get("reduction"),
                 "select_seconds": r.get("select_seconds"),
                 "peak_rss_mb": r.get("peak_rss_mb"),
+                "load_1min_start": (r.get("load_avg_start") or [None])[0],
+                "load_1min_end": (r.get("load_avg_end") or [None])[0],
                 "test_accuracy": (r.get("metrics_test") or {}).get("accuracy"),
                 "test_macro_f1": (r.get("metrics_test") or {}).get("macro_f1"),
                 **{f"t_{k}": v for k, v in (extra.get("timings") or {}).items()},

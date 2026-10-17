@@ -78,6 +78,9 @@ def worker(spec_path: Path) -> int:
     spec = json.loads(spec_path.read_text())
     out = Path(spec["out"])
     out.parent.mkdir(parents=True, exist_ok=True)
+    load_avg_start = (
+        os.getloadavg()
+    )  # recorded so timings can be shown to come from an idle machine
     t_load = time.perf_counter()
     X, y_raw = load_prepared(Path(spec["data"]))
     encoder = LabelEncoder().fit(y_raw)
@@ -158,6 +161,8 @@ def worker(spec_path: Path) -> int:
             }
         )
     record["peak_rss_mb"] = peak_rss_mb()
+    record["load_avg_start"] = [round(x, 2) for x in load_avg_start]  # 1, 5, 15 min
+    record["load_avg_end"] = [round(x, 2) for x in os.getloadavg()]
     record["wall_seconds_total"] = time.perf_counter() - t_load
     out.write_text(json.dumps(record, indent=1, default=_json_default))
     return 0 if status == "ok" else 1

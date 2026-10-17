@@ -70,6 +70,7 @@ def test_benchmark_end_to_end(tmp_path):
     run_log = tmp_path / "results" / "runs" / "sample" / "fastforest_mdi" / "seed0.log"
     assert "Threshold search kept" in run_log.read_text()  # worker output goes to its own log
     assert record["n_rows"] == 400
+    assert len(record["load_avg_start"]) == 3 and len(record["load_avg_end"]) == 3
     assert set(record["metrics_test"]) == {
         "accuracy",
         "macro_precision",
