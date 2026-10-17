@@ -3,6 +3,14 @@
 Evaluation protocol for the paper (plan §6). Everything is driven by `config.yaml`; run from
 the repository root with the `bench` extra installed (`pip install -e ".[bench]"`).
 
+One command reproduces every table and figure (finished runs are skipped):
+
+```bash
+bash benchmarks/reproduce.sh
+```
+
+The steps it runs:
+
 ```bash
 python benchmarks/run_benchmark.py --config benchmarks/config.yaml            # all datasets, methods, seeds
 python benchmarks/run_benchmark.py --config benchmarks/config.yaml --scalability   # FastForest on the full rows

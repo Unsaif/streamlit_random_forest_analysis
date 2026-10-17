@@ -209,7 +209,16 @@ and keeps intermediates small.
 - Comparison campaign complete 14:05: 244 of 244 runs ok (0 errors, 0 timeouts). Outputs in
   `results/summary/`: `per_run.csv`, `summary.csv`, `stability.csv`, `datasets.csv`,
   `fig_reduction_vs_accuracy.{png,pdf}`, `fig_stability.png`; environment in `results/env.json`.
-- Scalability runs (T3) time `fastforest_mdi` only on the six full-size phylum/order tables
-  (90k–238k rows), one seed each, on an idle machine (`--scalability`); not run yet.
+- Scalability runs (T3) done 2026-10-17 10:15–10:50, `fastforest_mdi`, seed 0, six full-size
+  phylum/order tables (90,327–238,492 rows × 5,129–5,844 features), back to back on an otherwise
+  idle laptop (load 2.0 before the first run; the 8–11 at later starts is the previous run's own
+  load). 1.7–11.0 min per table, peak RSS 2.7–3.9 GB, 97.9–93.4% of features removed, test
+  accuracy 99.28–99.88%. The initial forest on all features dominates (84–502 s); the threshold
+  search takes 9–195 s and redundancy removal < 3 s. `results/summary/scalability.csv`.
+- `bash benchmarks/reproduce.sh` reruns everything (skipping finished runs) and rebuilds the
+  summary; verified 2026-10-17 (244 + 6 runs skipped, summary rebuilt).
+- Still missing for §6.1: the public datasets (Madelon, Gisette, a GEMLeR gene-expression set;
+  OpenML ids 1485, 41026, 1128; 5.2 / 296.4 / 108.5 MB) and the relevant-feature lists for
+  Madelon/Gisette recovery (F4).
 - `perm_threshold` selection time in `per_run.csv` is the shared S2+S3 time of `fastforest_perm`
   (`select_seconds_from`), because it reuses those importances.
