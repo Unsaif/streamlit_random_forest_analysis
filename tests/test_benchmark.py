@@ -176,3 +176,22 @@ def test_large_run_logs_are_compressed(tmp_path):
     small.write_text("fine")
     rb._compress_if_large(small)
     assert small.read_text() == "fine"
+
+
+def test_recovery_table_precision_and_recall():
+    from benchmarks.summarize import recovery_table
+
+    cfg = {"datasets": {"toy": {"relevant_features": ["a", "b", "c", "d"]}, "other": {}}}
+    runs = [
+        {"dataset": "toy", "method": "m1", "seed": 0, "status": "ok", "features": ["a", "b", "x"]},
+        {"dataset": "toy", "method": "m2", "seed": 0, "status": "ok", "features": []},
+        {"dataset": "toy", "method": "m3", "seed": 0, "status": "error"},
+        {"dataset": "other", "method": "m1", "seed": 0, "status": "ok", "features": ["a"]},
+    ]
+    rec = recovery_table(runs, cfg)
+    assert list(rec["method"]) == ["m1", "m2"]
+    first = rec.iloc[0]
+    assert first["n_relevant_selected"] == 2
+    assert first["precision"] == pytest.approx(2 / 3)
+    assert first["recall"] == pytest.approx(0.5)
+    assert pd.isna(rec.iloc[1]["precision"]) and rec.iloc[1]["recall"] == 0

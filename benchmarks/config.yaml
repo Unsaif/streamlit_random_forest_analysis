@@ -175,3 +175,34 @@ datasets:
     scalability: false
     seeds: *half_seeds
     max_seeds: { l1_logistic: 1 }   # seed 0 only: ~45-90 min per run at 64-105 classes (Tim, 2026-10-16)
+
+  # Public benchmarks (plan §6.1, 9-11), loaded with scikit-learn's fetch_openml and cached under
+  # benchmarks/data/openml (git-ignored). The NIPS 2003 challenge never published which features
+  # are real and which are probes (the .feat identity files are absent from both the UCI archive
+  # and the original 2003 archive), so the relevant sets below are inferred from the documented
+  # construction; see docs/NOTES.md, "Relevant-feature ground truth".
+  madelon:
+    name: "Madelon (NIPS 2003)"
+    source: "OpenML 1485 (UCI / NIPS 2003 feature selection challenge)"
+    kind: openml
+    openml_id: 1485
+    target: Class
+    feature_type: "continuous (synthetic; 20 relevant, 480 probes)"
+    relevant_features_source: "inferred: the 20 features whose maximum |Pearson r| with another feature is >= 0.69 (all 480 others <= 0.09); rank-5 structure as documented (5 informative + 15 linear combinations)"
+    relevant_features: [V29, V49, V65, V106, V129, V154, V242, V282, V319, V337, V339, V379, V434, V443, V452, V454, V456, V473, V476, V494]
+
+  gisette:
+    name: "Gisette (NIPS 2003)"
+    source: "OpenML 41026 (UCI / NIPS 2003 feature selection challenge)"
+    kind: openml
+    openml_id: 41026
+    target: class
+    feature_type: "integer pixels and pixel products (2,500 real, 2,500 probes)"
+
+  gemler_breast:
+    name: "GEMLeR breast vs rest (gene expression)"
+    source: "OpenML 1128 (GEMLeR OVA_Breast)"
+    kind: openml
+    openml_id: 1128
+    target: Tissue
+    feature_type: "continuous (microarray expression)"

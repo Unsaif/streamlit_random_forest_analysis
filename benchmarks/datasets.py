@@ -89,6 +89,21 @@ def load_raw(cfg: dict, root: Path, cache_dir: Path) -> tuple[pd.DataFrame, pd.S
             "%s: %d of %d genomes have a %s label", cfg["path"], mask.sum(), len(y), cfg["target"]
         )
         return X.iloc[np.flatnonzero(mask)], y[mask].astype(str)
+    if kind == "openml":
+        from scipy import sparse
+        from sklearn.datasets import fetch_openml
+
+        bunch = fetch_openml(
+            data_id=cfg["openml_id"],
+            data_home=root / cfg.get("data_home", "benchmarks/data/openml"),
+            as_frame=False,
+            parser="auto",
+        )
+        data = bunch.data.toarray() if sparse.issparse(bunch.data) else np.asarray(bunch.data)
+        X = pd.DataFrame(data, columns=[str(c) for c in bunch.feature_names])
+        y = pd.Series(np.asarray(bunch.target).astype(str), name=cfg.get("target", "target"))
+        log.info("OpenML %s: %d rows x %d features", cfg["openml_id"], *X.shape)
+        return X, y
     raise ValueError(f"unknown dataset kind {kind!r}")
 
 

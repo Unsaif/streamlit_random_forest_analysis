@@ -222,3 +222,25 @@ and keeps intermediates small.
   Madelon/Gisette recovery (F4).
 - `perm_threshold` selection time in `per_run.csv` is the shared S2+S3 time of `fastforest_perm`
   (`select_seconds_from`), because it reuses those importances.
+
+## Relevant-feature ground truth for Madelon and Gisette (2026-10-17)
+
+The plan (§6.1) asks to score recovery against "the challenge's published relevant-feature list".
+No such list is published: the design report (Guyon 2003, `Dataset.pdf` in the UCI archive)
+names a `dataname.feat` identity file, but it is absent from the UCI archive and from the original
+2003 challenge archive (`MADELON.zip`, retrieved from the Wayback Machine snapshot of
+nipsfsc.ecs.soton.ac.uk, 2005-12-27); feature identities were kept secret during the challenge.
+The report does document the construction, so the relevant sets are inferred from it:
+
+- **Madelon** (OpenML 1485, 2,600 × 500): 20 real features = 5 informative + 15 linear
+  combinations of them; 480 independent random probes. On the OpenML data exactly 20 features have
+  a maximum |Pearson r| with another feature ≥ 0.69 and every other feature ≤ 0.09; the 20 show
+  rank-5 structure (singular values 127, 112, 102, 84, 74, then 5.6). Relevant set: V29, V49,
+  V65, V106, V129, V154, V242, V282, V319, V337, V339, V379, V434, V443, V452, V454, V456, V473,
+  V476, V494 (in `benchmarks/config.yaml`). The paper must say "inferred from the documented
+  construction", not "published".
+- **Gisette** (OpenML 41026): 2,500 real features (pixels and pixel products of MNIST 4 vs 9) and
+  2,500 probes made by permuting real-feature columns across samples; probes are independent of
+  every other feature. Inference pending; used only if the same correlation test separates
+  exactly 2,500 features with a clear gap, otherwise Gisette is reported without recovery.
+

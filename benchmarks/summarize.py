@@ -186,6 +186,57 @@ def stability_table(runs: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def recovery_table(runs: list[dict], cfg: dict) -> pd.DataFrame:
+    """Relevant-feature recovery per run for datasets whose config lists ``relevant_features``.
+
+    precision = relevant selected / selected; recall = relevant selected / relevant.
+    """
+    rows = []
+    for r in runs:
+        dcfg = cfg["datasets"].get(r["dataset"]) or {}
+        relevant = {str(f) for f in dcfg.get("relevant_features") or []}
+        if not relevant or r.get("status") != "ok" or r.get("features") is None:
+            continue
+        selected = {str(f) for f in r["features"]}
+        hit = len(selected & relevant)
+        rows.append(
+            {
+                "dataset": r["dataset"],
+                "method": r["method"],
+                "seed": r["seed"],
+                "n_selected": len(selected),
+                "n_relevant": len(relevant),
+                "n_relevant_selected": hit,
+                "precision": hit / len(selected) if selected else np.nan,
+                "recall": hit / len(relevant),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def figure_recovery(recovery: pd.DataFrame, cfg: dict | None = None) -> Figure:
+    """Precision and recall of relevant-feature recovery per method (mean ± SD over seeds)."""
+    datasets = _dataset_order(recovery["dataset"], cfg)
+    methods = [m for m in METHOD_ORDER if m in set(recovery["method"])]
+    fig = Figure(figsize=(1.1 * len(methods) + 2.5, 3.4 * len(datasets)))
+    axes = fig.subplots(len(datasets), 1, squeeze=False)[:, 0]
+    x = np.arange(len(methods))
+    for ax, dataset in zip(axes, datasets, strict=True):
+        sub = recovery[recovery["dataset"] == dataset].groupby("method", observed=True)
+        for k, (metric, colour) in enumerate((("precision", "#4C72B0"), ("recall", "#DD8452"))):
+            mean = sub[metric].mean().reindex(methods)
+            sd = sub[metric].std(ddof=1).reindex(methods)
+            ax.bar(x + (k - 0.5) * 0.38, mean, 0.38, yerr=sd, capsize=2, label=metric, color=colour)
+        n_rel = int(recovery.loc[recovery["dataset"] == dataset, "n_relevant"].iloc[0])
+        ax.set_title(f"{_dataset_label(dataset, cfg)}: recovery of the {n_rel} relevant features")
+        ax.set_xticks(x)
+        ax.set_xticklabels([METHOD_LABELS.get(m, m) for m in methods], rotation=25, ha="right")
+        ax.set_ylim(0, 1.05)
+        ax.legend(fontsize=8)
+    fig.tight_layout()
+    return fig
+
+
 def datasets_table(cfg: dict, prepared_dir: Path) -> pd.DataFrame:
     rows = []
     for name in cfg["datasets"]:
@@ -370,6 +421,12 @@ def main(argv: list[str] | None = None) -> int:
         summary.to_csv(summary_dir / "summary.csv", index=False)
         stability = stability_table(runs)
         stability.to_csv(summary_dir / "stability.csv", index=False)
+        recovery = recovery_table(runs, cfg)
+        if not recovery.empty:
+            recovery.to_csv(summary_dir / "recovery.csv", index=False)
+            figure_recovery(recovery, cfg).savefig(
+                summary_dir / "fig_recovery.png", dpi=200, bbox_inches="tight"
+            )
         fig = figure_reduction_vs_accuracy(ok, cfg)
         fig.savefig(summary_dir / "fig_reduction_vs_accuracy.png", dpi=200, bbox_inches="tight")
         fig.savefig(summary_dir / "fig_reduction_vs_accuracy.pdf", bbox_inches="tight")
