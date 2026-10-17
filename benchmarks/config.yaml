@@ -198,6 +198,8 @@ datasets:
     openml_id: 41026
     target: class
     feature_type: "integer pixels and pixel products (2,500 real, 2,500 probes)"
+    # no relevant_features: the documented construction does not identify the probes in the data
+    # (correlation test, docs/NOTES.md), so Gisette is not scored for recovery
 
   gemler_breast:
     name: "GEMLeR breast vs rest (gene expression)"

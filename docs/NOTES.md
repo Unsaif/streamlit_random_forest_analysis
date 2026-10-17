@@ -241,6 +241,10 @@ The report does document the construction, so the relevant sets are inferred fro
   construction", not "published".
 - **Gisette** (OpenML 41026): 2,500 real features (pixels and pixel products of MNIST 4 vs 9) and
   2,500 probes made by permuting real-feature columns across samples; probes are independent of
-  every other feature. Inference pending; used only if the same correlation test separates
-  exactly 2,500 features with a clear gap, otherwise Gisette is reported without recovery.
+  every other feature. The same test does **not** separate them (2026-10-17, OpenML 41026,
+  7,000 × 5,000, 29 constant columns): the maximum |r| falls smoothly through rank 2,500
+  (0.332 at 2,500, 0.330 at 2,501, 0.238 at 2,550), and 4,136 features exceed the ~0.05 expected
+  for an independent column, so sparse, heavy-tailed columns correlate by chance too. Gisette is
+  therefore reported for accuracy, reduction and stability only, without recovery scores; figure
+  F4 covers Madelon.
 
